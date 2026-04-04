@@ -1,0 +1,13 @@
+[];
+                    for (let i = 0; i < q.answers.length; i++) {
+                        const el = document.getElementById(`blank-${qIndex}-${i}`);
+                        if (el && savedForQ[i] !== undefined) el.value = savedForQ[i];
+                    }
+                });
+                updateProgress();
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"q":"In the pectoral region, where is the superficial fascia notably absent?","options":["Over the clavicle","Over the sternum","Under the areola","Over the axillary tail"],"answer":2},{"q":"What anatomical landmark separates the clavicular and sternocostal heads of the pectoralis major muscle?","options":["The clavipectoral triangle","The deltoid groove for the cephalic vein","The suspensory ligament of the axilla","The lateral lip of the bicipital groove"],"answer":1},{"q":"Which of the following nerves innervates the pectoralis minor muscle?","options":["Lateral pectoral nerve only","Medial pectoral nerve only","Both medial and lateral pectoral nerves","Long thoracic nerve"],"answer":1},{"q":"A collection of pus behind the pectoralis minor muscle typically originates from which of the following areas?","options":["The retro-mammary space","The region of the neck through the cervico-axillary canal","The superficial pectoral fascia","The glenohumeral joint"],"answer":1},{"q":"Histologically and functionally, the breast is classified as which type of structure?","options":["A modified sebaceous gland","A modified apocrine sweat gland","An endocrine gland","A specialized lymphoid organ"],"answer":1},{"q":"What is the normal vertical extent of the breast on the chest wall?","options":["From the 1st to the 5th rib","From the 2nd to the 6th rib","From the 3rd to the 7th rib","From the 2nd to the 8th rib"],"answer":1},{"q":"Through which specific opening does the axillary tail of Spence pierce the deep fascia?","options":["The foramen of Langer","The clavipectoral hiatus","The cervico-axillary canal","The sternocostal hiatus"],"answer":0},{"q":"Which of the following muscles does NOT form part of the deep relations (base) of the breast?","options":["Pectoralis major","Serratus anterior","External oblique abdominis","Latissimus dorsi"],"answer":3},{"q":"How many lactiferous ducts typically pierce the nipple of the human breast?","options":["5 to 10","10 to 15","15 to 20","20 to 25"],"answer":2},{"q":"The areola becomes enlarged during pregnancy and lactation, forming structures known as the tubercles of Montgomery. What type of glands form these tubercles?","options":["Modified sweat glands","Modified sebaceous glands","Accessory mammary glands","Eccrine glands"],"answer":1},{"q":"What is the structural significance of the suspensory ligaments of Cooper within the breast?","options":["They form the fascial floor of the axilla","They anchor the skin to the pectoral fascia and divide the breast into compartments","They connect the clavicle to the pectoralis minor","They dilate to form the lactiferous sinuses"],"answer":1},{"q":"Which of the following describes the distribution of fatty stroma in the breast?","options":["It is localized exclusively in the retro-mammary space","It is distributed all over the breast, including the nipple and areola","It is distributed all over the breast except the nipple and areola","It surrounds only the axillary tail"],"answer":2},{"q":"The internal thoracic artery supplies blood to the breast. Which specific intercostal spaces does it perforate?","options":["1st to 4th intercostal spaces","2nd to 6th intercostal spaces","3rd to 5th intercostal spaces","4th to 7th intercostal spaces"],"answer":1},{"q":"In a clinical examination, a patient's breast exhibits dimpling and a reddish, pitted appearance resembling an orange peel. What is the clinical term for this finding?","options":["Gynecomastia","Polymastia","Peau d'orange","Benign papilloma"],"answer":2},{"q":"Polymastia most commonly occurs along which specific anatomical pathway?","options":["The midaxillary line","The midclavicular line","The milk line","The parasternal line"],"answer":2},{"q":"According to the lymphatic drainage distribution of the breast, what percentage of lymph drains directly to the axillary nodes?","options":["20%","50%","70%","90%"],"answer":2},{"q":"The medial part of the breast primarily drains its lymphatic fluid through the intercostal spaces into which nodes?","options":["Axillary nodes","Infraclavicular nodes","Parasternal nodes","Posterior intercostal nodes"],"answer":2},{"q":"Which specific lymphatic nodes are responsible for draining the parenchyma, nipple, and areola of the breast?","options":["Superficial nodes","Deep nodes","Posterior intercostal nodes","Sub-diaphragmatic nodes"],"answer":1},{"q":"In which specific anatomical structures do the vast majority of breast cancers originate?","options":["Suspensory ligaments of Cooper","Sebaceous glands of the areola","Lobules or ducts","Fatty stroma"],"answer":2},{"q":"What specific region of the breast is considered the most common site for cancer development?","options":["Lower inner quadrant","Upper inner quadrant","Upper outer quadrant and the axillary tail","Lower outer quadrant"],"answer":2},{"q":"How does the superficial fascia structurally interact with the mammary gland?","options":["It lies entirely deep to the mammary gland forming a muscular bed","It splits into two layers to enclose the mammary gland","It forms a rigid capsule preventing glandular expansion","It fuses with the deep fascia anterior to the gland"],"answer":1},{"q":"During arm abduction, which structure is pulled up to make the hollow of the axilla more prominent?","options":["The clavipectoral fascia","The suspensory ligament of Cooper","The suspensory ligament of the axilla","The lateral pectoral nerve"],"answer":2},{"q":"The fascial sheet at the upper border of the pectoralis minor unites to form the clavipectoral fascia. Which muscle does this fascia run upward to enclose?","options":["Deltoid","Subclavius","Pectoralis major","Latissimus dorsi"],"answer":1},{"q":"Which of the following accurately describes the precise origins of the pectoralis minor muscle?","options":["2nd-4th ribs (or 3rd-5th ribs) and the external intercostal membrane","Medial half of the clavicle and the manubrium","The aponeurosis of the external oblique and 6th costal cartilage","The coracoid process of the scapula"],"answer":0},{"q":"What type of muscle tissue is found within the nipple to cause it to become erect or flattened?","options":["Skeletal muscle","Cardiac muscle","Circular and long smooth muscles","Myoepithelial cells only"],"answer":2},{"q":"Which nerves are responsible for supplying the adjacent skin by piercing the pectoralis major lateral to the sternum?","options":["Anterior intercostal nerves","Lateral cutaneous branches of intercostal nerves","Supraclavicular nerves","Medial pectoral nerves"],"answer":0},{"q":"In the complex insertion pattern of the pectoralis major, where do the fibres from the sternocostal head attach?","options":["The lower part of the lateral lip of the bicipital groove","The upper part of the lateral lip of the bicipital groove","The medial lip of the bicipital groove","The coracoid process"],"answer":1},{"q":"What is the functional consequence of infiltration of the suspensory ligaments of Cooper by cancer cells?","options":["Massive swelling of the areola","Overproduction of lactiferous fluid","Fixity of the breast leading to puckering of the skin","Extreme mobility of the axillary tail"],"answer":2},{"q":"The superficial lymphatic nodes of the breast are primarily responsible for draining which specific area?","options":["The entire glandular parenchyma","The axillary tail of Spence","The nipple and areola","The skin of the breast except the areola and nipples"],"answer":3},{"q":"Structurally, what forms the axillary fascia?","options":["The superficial fascia overlying the pectoralis major","The portion of the deep fascia located between the muscles forming the floor of the axilla","The clavipectoral fascia after it encloses the subclavius","The suspensory ligaments of Cooper extending laterally"],"answer":1}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>
