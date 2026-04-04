@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSF - Admin Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #050505; 
+            --box-bg: #0a244a;   
+            --box-hover: #0e356b;
+            --text-color: #e0e6ed; 
+            --accent: #4fa8fb;
+            --danger: #ff4a4a;
+            --success: #4aff80;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        #app { width: 100%; max-width: 900px; padding: 2rem; box-sizing: border-box; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--box-bg); padding-bottom: 10px;}
+        h1, h2, h3 { color: var(--text-color); margin: 0; }
+        
+        .hamburger {
+            font-size: 2rem; cursor: pointer; background: none; border: none; color: var(--accent);
+            padding: 5px; line-height: 1; transition: 0.3s;
+        }
+        .hamburger:hover { color: var(--text-color); }
+
+        .view { display: none; }
+        .view.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .menu-box {
+            background-color: var(--box-bg); border: 2px solid #1a3c6b; border-radius: 12px;
+            padding: 2rem; margin-bottom: 1.5rem; text-align: center; cursor: pointer;
+            transition: all 0.3s ease; display: block; text-decoration: none; color: inherit;
+        }
+        .menu-box:hover { background-color: var(--box-hover); transform: translateY(-3px); border-color: var(--accent); }
+        .menu-box h2 { margin: 0 0 10px 0; }
+
+        button {
+            background-color: var(--box-bg); color: var(--text-color); border: 1px solid var(--accent);
+            padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 1rem; transition: 0.2s; margin: 5px;
+        }
+        button:hover { background-color: var(--box-hover); }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        textarea {
+            width: 100%; height: 300px; background-color: #031021; color: var(--accent);
+            border: 1px solid var(--box-bg); border-radius: 8px; padding: 10px; font-family: monospace; resize: vertical; box-sizing: border-box;
+        }
+        
+        .code-output {
+            width: 100%; height: 300px; background-color: #020812; color: #a5c2f0;
+            border: 1px solid var(--box-hover); border-radius: 8px; padding: 10px;
+            font-family: monospace; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; box-sizing: border-box;
+        }
+
+        .guide-box { background-color: rgba(10, 36, 74, 0.5); border-left: 4px solid var(--accent); padding: 15px; margin-top: 20px; border-radius: 4px; }
+        code { background-color: #000; padding: 2px 6px; border-radius: 4px; color: #ffeb3b; }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <header>
+            <h1>LSF System</h1>
+            <button class="hamburger" onclick="toggleMenu()">☰</button>
+        </header>
+
+        <div id="admin-nav" class="view">
+            <h2>Admin Tools</h2>
+            <div class="grid-2" style="margin-top: 20px; margin-bottom: 20px;">
+                <button onclick="switchView('mcq-gen-view')" style="padding: 20px; font-size: 1.2rem;">⚙️ Generate MCQ</button>
+                <button onclick="switchView('cloze-gen-view')" style="padding: 20px; font-size: 1.2rem;">⚙️ Generate Cloze</button>
+            </div>
+            
+            <div class="guide-box">
+                <h3>🤖 AI Prompt Guide (Copy & Paste to AI)</h3>
+                <p><strong>For MCQ:</strong> "Generate [number] multiple choice questions. Strictly format EACH question like this exactly: <br>
+                <code>&lt;&lt;MCQ&gt;&gt;</code><br>
+                <code>[Q] Your question text here?</code><br>
+                <code>[O] Option A</code><br>
+                <code>[O] Option B</code><br>
+                <code>[O] Option C</code><br>
+                <code>[O] Option D</code><br>
+                <code>[A] 2</code> (Provide the number 1-4 for the correct option)<br>
+                <code>&lt;&lt;END&gt;&gt;</code>"
+                </p>
+                <p><strong>For Cloze (NEW - Multiple Acceptable Answers):</strong> "Generate [number] cloze test sentences. For every blank, put the main answer AND any acceptable alternatives (synonyms, spellings, common variations) separated by | inside curly brackets.<br>
+                Example: <br>
+                <code>&lt;&lt;CLOZE&gt;&gt;</code><br>
+                <code>[C] The mitochondria is the {powerhouse | power house | energy factory} of the {cell | unit}.</code><br>
+                <code>&lt;&lt;END&gt;&gt;</code><br>
+                <strong>Always use | to separate alternatives.</strong>"
+                </p>
+            </div>
+            <button onclick="switchView('home-view')">Back to Home</button>
+        </div>
+
+        <div id="home-view" class="view active">
+            <a href="lsf-mcq.html" class="menu-box">
+                <h2>⏱️ 10 Mins Rapid MCQs</h2>
+                <p>Click to open lsf-mcq</p>
+            </a>
+            
+            <a href="lsf-cloze.html" class="menu-box">
+                <h2>🧩 30 Cloze-Test Questions</h2>
+                <p>Click to open lsf-cloze</p>
+            </a>
+        </div>
+
+        <div id="mcq-gen-view" class="view">
+            <h2>Generate MCQ Webpage</h2>
+            <div class="grid-2">
+                <div>
+                    <h3>1. Paste AI Output</h3>
+                    <textarea id="mcq-input" placeholder="<<MCQ>>\n[Q] What is...\n..."></textarea>
+                    <div style="display: flex; gap: 10px; margin-top:10px;">
+                        <input type="number" id="mcq-time" value="10" style="width: 80px; padding: 5px;" placeholder="Mins">
+                        <button onclick="generateMCQ()" style="margin: 0; flex-grow: 1;">Generate Code</button>
+                    </div>
+                </div>
+                <div>
+                    <h3>2. Copy Code to 'lsf-mcq.html'</h3>
+                    <textarea class="code-output" id="mcq-output" readonly></textarea>
+                </div>
+            </div>
+            <button onclick="switchView('admin-nav')">Back</button>
+        </div>
+
+        <div id="cloze-gen-view" class="view">
+            <h2>Generate Cloze Webpage</h2>
+            <div class="grid-2">
+                <div>
+                    <h3>1. Paste AI Output</h3>
+                    <textarea id="cloze-input" placeholder="<<CLOZE>>\n[C] The sky is {blue | azure}.\n..."></textarea>
+                    <button onclick="generateCloze()" style="margin-top:10px; width:100%;">Generate Code</button>
+                </div>
+                <div>
+                    <h3>2. Copy Code to 'lsf-cloze.html'</h3>
+                    <textarea class="code-output" id="cloze-output" readonly></textarea>
+                </div>
+            </div>
+            <button onclick="switchView('admin-nav')">Back</button>
+        </div>
+
+    </div>
+
+    <script>
+        function toggleMenu() {
+            const current = document.querySelector('.view.active').id;
+            if (current === 'home-view') switchView('admin-nav');
+            else switchView('home-view');
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        const uiStyles = `
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        `;
+
+        // ==================== MCQ GENERATOR (FIXED - clean interpolation) ====================
+        function generateMCQ() {
+            const rawText = document.getElementById('mcq-input').value;
+            const timeMins = parseInt(document.getElementById('mcq-time').value) || 10;
+            
+            const questions = [];
+            const blocks = rawText.split('<<MCQ>>');
+            
+            blocks.forEach(block => {
+                if (!block.includes('<<END>>')) return;
+                const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                let qText = "", ansIdx = 1, opts = [];
+                lines.forEach(line => {
+                    if (line.startsWith('[Q]')) qText = line.replace('[Q]', '').trim();
+                    if (line.startsWith('[O]')) opts.push(line.replace('[O]', '').trim());
+                    if (line.startsWith('[A]')) ansIdx = parseInt(line.replace('[A]', '').trim()) - 1;
+                });
+                if (qText && opts.length > 0) questions.push({ q: qText, options: opts, answer: ansIdx });
+            });
+
+            if (questions.length === 0) { alert("Failed to parse. Check prompt guide format."); return; }
+
+            const htmlOutput = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>${uiStyles}
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (${questions.length} Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (${timeMins} Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">${timeMins}:00</span>
+                <span id="progress">0 / ${questions.length} Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = ${JSON.stringify(questions)};
+        const timeLimit = ${timeMins * 60};
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = \`lsf_mcq_\${simpleHash(JSON.stringify(quizData))}\`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = \`\${m}:\${s < 10 ? '0' : ''}\${s}\`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += \`<div class="box" id="qbox-\${i}"><p><strong>Q\${i+1}:</strong> \${q.q}</p>\`;
+                q.options.forEach((opt, optIdx) => {
+                    html += \`<label class="option" onclick="updateProgress()"><input type="radio" name="q\${i}" value="\${optIdx}"> \${opt}</label>\`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(\`input[name="q\${i}"]:checked\`)) answered++; });
+            document.getElementById('progress').innerText = \`\${answered} / \${quizData.length} Answered\`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(\`input[name="q\${i}"]:checked\`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(\`input[name="q\${i}"]:checked\`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += \`<div class="review-item \${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q\${i+1}:</strong> \${q.q}</p>
+                    <p>Your Answer: <span style="color: \${isCorrect ? 'var(--success)' : 'var(--danger)'}">\${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    \${!isCorrect ? \`<p>Correct Answer: <span style="color: var(--success)">\${q.options[q.answer]}</span></p>\` : ''}
+                </div>\`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = \`Quiz Complete!\`;
+            document.getElementById('result-name').innerText = \`Great effort, \${sName}\`;
+            document.getElementById('trophy-score').innerText = \`\${percent}%\`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += \`<div class="review-item \${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q\${i+1}:</strong> \${q.q}</p>
+                        <p>Your Answer: <span style="color: \${isCorrect ? 'var(--success)' : 'var(--danger)'}">\${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        \${!isCorrect ? \`<p>Correct Answer: <span style="color: var(--success)">\${q.options[q.answer]}</span></p>\` : ''}
+                    </div>\`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = \`Quiz Complete!\`;
+                document.getElementById('result-name').innerText = \`Great effort, \${saved.studentName}\`;
+                document.getElementById('trophy-score').innerText = \`\${percent}%\`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(\`input[name="q\${i}"][value="\${ansIdx}"]\`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = \`\${m}:\${s < 10 ? '0' : ''}\${s}\`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    <\/script>
+</body>
+</html>`;
+
+            document.getElementById('mcq-output').value = htmlOutput;
+        }
+
+        // ==================== CLOZE GENERATOR (FIXED - clean interpolation) ====================
+        function generateCloze() {
+            const rawText = document.getElementById('cloze-input').value;
+            
+            const questions = [];
+            const blocks = rawText.split('<<CLOZE>>');
+            
+            blocks.forEach(block => {
+                if (!block.includes('<<END>>')) return;
+                const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                
+                lines.forEach(line => {
+                    if (line.startsWith('[C]')) {
+                        const rawSentence = line.replace('[C]', '').trim();
+                        const answers = [];
+                        let templateSentence = rawSentence.replace(/\{([^}]+)\}/g, (match, p1) => {
+                            const variants = p1.split('|').map(v => v.trim()).filter(Boolean);
+                            answers.push(variants.length ? variants : ['']);
+                            return '[[BLANK]]';
+                        });
+                        if (answers.length > 0) questions.push({ text: templateSentence, answers: answers });
+                    }
+                });
+            });
+
+            if (questions.length === 0) { alert("Failed to parse. Check prompt guide format."); return; }
+
+            const htmlOutput = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Cloze Test</title>
+    <style>${uiStyles}
+        .cloze-input { background: transparent; border: none; border-bottom: 2px solid var(--accent); color: #fff; font-size: 1rem; width: 100px; text-align: center; outline: none; margin: 0 5px; }
+        .cloze-input:focus { border-bottom-color: #fff; }
+        .cloze-text { font-size: 1.2rem; line-height: 2; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Cloze Test (${questions.length} Items)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Test</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="progress">0 / ${questions.length} Attempted</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Test Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = ${JSON.stringify(questions)};
+        
+        function isAnyCorrect(inputStr, targetVariants) {
+            const s1 = inputStr.toLowerCase().trim();
+            if (!s1) return false;
+            return targetVariants.some(target => {
+                const s2 = target.toLowerCase().trim();
+                if (s1 === s2) return true;
+                let longer = s1.length > s2.length ? s1 : s2;
+                let shorter = s1.length > s2.length ? s2 : s1;
+                if (longer.length === 0) return false;
+                let costs = [];
+                for (let i = 0; i <= longer.length; i++) {
+                    let lastValue = i;
+                    for (let j = 0; j <= shorter.length; j++) {
+                        if (i === 0) costs[j] = j;
+                        else if (j > 0) {
+                            let newValue = costs[j - 1];
+                            if (longer[i - 1] !== shorter[j - 1]) newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                            costs[j - 1] = lastValue;
+                            lastValue = newValue;
+                        }
+                    }
+                    if (i > 0) costs[shorter.length] = lastValue;
+                }
+                const similarity = (longer.length - costs[shorter.length]) / longer.length;
+                return similarity >= 0.85;
+            });
+        }
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = \`lsf_cloze_\${simpleHash(JSON.stringify(quizData))}\`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: quizData.map(q => new Array(q.answers.length).fill('')) });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, qIndex) => {
+                let parts = q.text.split('[[BLANK]]');
+                let sentenceHtml = \`<div class="box cloze-text"><span style="color:var(--accent); font-weight:bold; margin-right:10px;">\${qIndex + 1}.</span>\`;
+                for (let i = 0; i < parts.length; i++) {
+                    sentenceHtml += parts[i];
+                    if (i < parts.length - 1) {
+                        sentenceHtml += \`<input type="text" class="cloze-input" id="blank-\${qIndex}-\${i}" autocomplete="off" oninput="updateProgress()">\`;
+                    }
+                }
+                sentenceHtml += '</div>';
+                html += sentenceHtml;
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let attempted = 0;
+            quizData.forEach((q, qIndex) => {
+                let hasInput = false;
+                for (let i = 0; i < q.answers.length; i++) {
+                    const el = document.getElementById(\`blank-\${qIndex}-\${i}\`);
+                    if (el && el.value.trim() !== '') hasInput = true;
+                }
+                if (hasInput) attempted++;
+            });
+            document.getElementById('progress').innerText = \`\${attempted} / \${quizData.length} Attempted\`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = quizData.map((q, qIndex) => q.answers.map((_, i) => {
+                    const el = document.getElementById(\`blank-\${qIndex}-\${i}\`);
+                    return el ? el.value : '';
+                }));
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let totalBlanks = 0;
+            let correctBlanks = 0;
+            let reviewHtml = '';
+            const userAnswers = quizData.map((q, qIndex) => q.answers.map((_, i) => {
+                const el = document.getElementById(\`blank-\${qIndex}-\${i}\`);
+                return el ? el.value : '';
+            }));
+
+            quizData.forEach((q, qIndex) => {
+                let parts = q.text.split('[[BLANK]]');
+                let reviewSentence = \`<p><strong>\${qIndex + 1}.</strong> \`;
+                let allCorrectForThisQ = true;
+                for (let i = 0; i < parts.length; i++) {
+                    reviewSentence += parts[i];
+                    if (i < parts.length - 1) {
+                        totalBlanks++;
+                        const userVal = document.getElementById(\`blank-\${qIndex}-\${i}\`) ? document.getElementById(\`blank-\${qIndex}-\${i}\`).value : '';
+                        const targetVariants = q.answers[i];
+                        const correct = isAnyCorrect(userVal, targetVariants);
+                        if (correct) {
+                            correctBlanks++;
+                            reviewSentence += \`<span style="color:var(--success); text-decoration:underline;">\${userVal || targetVariants[0]}</span>\`;
+                        } else {
+                            allCorrectForThisQ = false;
+                            reviewSentence += \`<span style="color:var(--danger); text-decoration:line-through;">\${userVal || '___'}</span> <span style="color:var(--success);">(\${targetVariants[0]})</span>\`;
+                        }
+                    }
+                }
+                reviewSentence += '</p>';
+                reviewHtml += \`<div class="review-item \${allCorrectForThisQ ? 'correct' : 'incorrect'}">\${reviewSentence}</div>\`;
+            });
+
+            const percent = totalBlanks ? Math.round((correctBlanks / totalBlanks) * 100) : 0;
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = \`Test Complete!\`;
+            document.getElementById('result-name').innerText = \`Great effort, \${sName}\`;
+            document.getElementById('trophy-score').innerText = \`\${percent}%\`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let totalBlanks = 0;
+                let correctBlanks = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, qIndex) => {
+                    let parts = q.text.split('[[BLANK]]');
+                    let reviewSentence = \`<p><strong>\${qIndex + 1}.</strong> \`;
+                    let allCorrectForThisQ = true;
+                    const savedInputs = saved.userAnswers[qIndex] || new Array(q.answers.length).fill('');
+                    for (let i = 0; i < parts.length; i++) {
+                        reviewSentence += parts[i];
+                        if (i < parts.length - 1) {
+                            totalBlanks++;
+                            const userVal = savedInputs[i] || '';
+                            const targetVariants = q.answers[i];
+                            const correct = isAnyCorrect(userVal, targetVariants);
+                            if (correct) {
+                                correctBlanks++;
+                                reviewSentence += \`<span style="color:var(--success); text-decoration:underline;">\${userVal || targetVariants[0]}</span>\`;
+                            } else {
+                                allCorrectForThisQ = false;
+                                reviewSentence += \`<span style="color:var(--danger); text-decoration:line-through;">\${userVal || '___'}</span> <span style="color:var(--success);">(\${targetVariants[0]})</span>\`;
+                            }
+                        }
+                    }
+                    reviewSentence += '</p>';
+                    reviewHtml += \`<div class="review-item \${allCorrectForThisQ ? 'correct' : 'incorrect'}">\${reviewSentence}</div>\`;
+                });
+                const percent = totalBlanks ? Math.round((correctBlanks / totalBlanks) * 100) : 0;
+                document.getElementById('result-title').innerText = \`Test Complete!\`;
+                document.getElementById('result-name').innerText = \`Great effort, \${saved.studentName}\`;
+                document.getElementById('trophy-score').innerText = \`\${percent}%\`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                renderQuestions();
+                const savedInputsAll = saved.userAnswers || [];
+                quizData.forEach((q, qIndex) => {
+                    const savedForQ = savedInputsAll[qIndex] || [];
+                    for (let i = 0; i < q.answers.length; i++) {
+                        const el = document.getElementById(\`blank-\${qIndex}-\${i}\`);
+                        if (el && savedForQ[i] !== undefined) el.value = savedForQ[i];
+                    }
+                });
+                updateProgress();
+            }
+        }
+        initializeQuiz();
+    <\/script>
+</body>
+</html>`;
+
+            document.getElementById('cloze-output').value = htmlOutput;
+        }
+    </script>
+</body>
+</html>

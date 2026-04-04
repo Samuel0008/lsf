@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"q":"What is the shape of the palmar aponeurosis as it fans out from the distal end of the flexor retinaculum?","options":["Rectangular","Triangular","Oval","Circular"],"answer":1},{"q":"Which of the following structures dips down into the palm from each side of the palmar aponeurosis?","options":["Synovial sheath","Fibrous septa","Lumbrical muscle","Digital nerve"],"answer":1},{"q":"Where does the ulnar border of the palmar aponeurosis attach?","options":["Dorsal border of the 4th metacarpal bone","Palmar border of the 5th metacarpal bone","Transverse carpal ligament","Radial border of the 3rd metacarpal bone"],"answer":1},{"q":"Why is the hypothenar eminence NOT considered surgically important in the context of palmar spaces?","options":["It contains the major digital arteries","It lacks a distinct blood supply","It does not contain a long flexor, only enclosing hypothenar muscles","It is tightly bound by the flexor retinaculum"],"answer":2},{"q":"How is the remaining part of the palm divided into two distinct spaces?","options":["By a septum that dips in from the radial border of the palmar aponeurosis to the palmar surface of the middle metacarpal bone","By the transverse carpal ligament spanning the width of the palm","By the common flexor synovial sheath","By the adductor pollicis muscle"],"answer":0},{"q":"What is the orientation of the septa that divides the palm, and which spaces does it separate?","options":["It is transverse and separates the dorsal from the palmar spaces","It is sagittal and separates the lumbricals from the interossei","It is coronal and separates the superficial palmar arch from the deep palmar arch","It is oblique and separates the thenar space on the radial side from the mid palmar space"],"answer":3},{"q":"If the septum passes deeply between the flexor tendons of the index and middle fingers, which structure overlies the thenar space?","options":["The flexor tendon of the middle finger","The first lumbrical","The flexor tendon of the index finger","The adductor pollicis"],"answer":2},{"q":"In cases where the septum passes between the index tendon and the first lumbricals, what structure overlies the thenar space?","options":["The flexor tendon to the index finger","The first lumbricals","The superficial palmar arch","The third metacarpal bone"],"answer":1},{"q":"In cases where the septum passes between the index tendon and the first lumbricals, what structure overlies the mid palmar space?","options":["The first lumbricals","The flexor tendons to the index finger","The adductor pollicis","The dorsal interossei"],"answer":1},{"q":"What limits the thenar space distally?","options":["The carpal tunnel","The transverse carpal ligament","The mid-palmar septum","The lumbrical canal"],"answer":3},{"q":"How is the thenar space closed proximally?","options":["Under the flexor retinaculum","By the transverse metacarpal ligament","By the palmar aponeurosis","By the distal flexion crease"],"answer":0},{"q":"What forms the medial border of the thenar space?","options":["The hypothenar septum","The lateral septum from the radial border of the palmar aponeurosis","The palmar surface of the 5th metacarpal","The first metacarpal"],"answer":1},{"q":"Which structures form the lateral border of the thenar space?","options":["The thenar septum and the first metacarpal","The hypothenar septum and the 5th metacarpal","The lateral septum and third metacarpal","The adductor pollicis and first lumbrical"],"answer":0},{"q":"Distally, the thenar space is limited by what specific muscle structure?","options":["Oblique head of the adductor pollicis","Transverse head of the adductor pollicis","First dorsal interosseous","Flexor pollicis brevis"],"answer":1},{"q":"What bounds the thenar space posteriorly?","options":["First lumbrical","Flexor retinaculum","Adductor pollicis","Palmar aponeurosis"],"answer":2},{"q":"Distally, the thenar space is continuous with a slit-like space located between the adductor pollicis and which other structure?","options":["The first lumbrical","The flexor pollicis longus tendon","The dorsal interosseous muscle","The palmar interosseous muscle"],"answer":2},{"q":"What structure typically overlies the thenar space?","options":["The flexor tendons to the middle finger","The extensor tendons to the index finger","The flexor tendons to the thumb","The flexor tendons to the index finger"],"answer":3},{"q":"What muscle does the thenar space contain, making it clinically relevant for the spread of infection?","options":["First lumbricals","Second lumbricals","Third lumbricals","Fourth lumbricals"],"answer":0},{"q":"What limits the mid-palmar space superficially?","options":["The palmar aponeurosis directly","A thin fascia that lies deep to the common synovial sheath and the flexor tendons","The transverse carpal ligament","The dorsal interosseous fascia"],"answer":1},{"q":"What structures form the floor of the mid-palmar space?","options":["The interossei and metacarpals of the 3rd and 4th spaces","The adductor pollicis and 1st metacarpal","The lumbricals and 2nd metacarpal","The flexor digitorum profundus tendons"],"answer":0},{"q":"What defines the lateral border of the mid-palmar space?","options":["The septum attached to the 3rd metacarpal","The hypothenar septum","The thenar septum","The palmar aponeurosis"],"answer":0},{"q":"What defines the medial border of the mid-palmar space?","options":["The septum attached to the 3rd metacarpal","The hypothenar septum to the 5th metacarpal","The radial border of the palmar aponeurosis","The transverse head of the adductor pollicis"],"answer":1},{"q":"How is the mid-palmar space closed proximally?","options":["By the firm attachment of the parietal layer of the common flexor synovial sheath to the wall of the carpal tunnel","By the transverse metacarpal ligament","By the superficial palmar arch","By the adductor pollicis"],"answer":0},{"q":"Where can an infection in the mid-palmar space readily break into?","options":["The thenar space","The connective tissue canals surrounding the ulnar three lumbricals","The hypothenar space","The carpal tunnel"],"answer":1},{"q":"The mid-palmar space is continuous distally with which of the following?","options":["Carpal canals","Lumbricals canals","Pulp spaces","Interosseous spaces"],"answer":1},{"q":"What are the potential pathways for infection to spread into the mid-palmar space?","options":["From the forearm via the radial artery","From the fingers along the lumbricals or from the digital synovial sheath","From the dorsal metacarpal veins","From the thenar eminence"],"answer":1},{"q":"Where are the pulp spaces located?","options":["On the dorsal side of the proximal phalanx","On the palmar side of the tip of fingers and thumb","Within the carpal tunnel","Between the metacarpal bones"],"answer":1},{"q":"What is the composition of the tissue inside the pulp spaces?","options":["Muscle tissue divided by synovial sheaths","Glandular tissue divided by fascia","Fatty tissue that is divided into numerous compartments by fibrous septa","Bone marrow surrounded by cortical bone"],"answer":2},{"q":"Between which structures does the fibrous septa of the pulp spaces pass?","options":["The proximal phalanx and the flexor tendon","The middle phalanx and the extensor expansion","The distal phalanx and the skin","The metacarpal and the palmar aponeurosis"],"answer":2},{"q":"What is a serious complication that can arise from an infection in the pulp spaces?","options":["Rupture of the flexor tendon","Necrosis of the end of bones due to vessel occlusion","Atrophy of the lumbrical muscles","Dislocation of the distal interphalangeal joint"],"answer":1}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>

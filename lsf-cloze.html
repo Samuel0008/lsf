@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Cloze Test</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .cloze-input { background: transparent; border: none; border-bottom: 2px solid var(--accent); color: #fff; font-size: 1rem; width: 100px; text-align: center; outline: none; margin: 0 5px; }
+        .cloze-input:focus { border-bottom-color: #fff; }
+        .cloze-text { font-size: 1.2rem; line-height: 2; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Cloze Test (30 Items)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Test</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="progress">0 / 30 Attempted</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Test Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"text":"The arm is the anatomical region of the upper limb between the [[BLANK]] and the [[BLANK]].","answers":[["shoulder"],["elbow","elbow joint"]]},{"text":"The superior aspect of the arm communicates medially with the [[BLANK]].","answers":[["axilla","armpit"]]},{"text":"Important structures pass between the arm and the forearm through the [[BLANK]], which is positioned anterior to the elbow joint.","answers":[["cubital fossa"]]},{"text":"The skeleton of the arm consists of a single bone called the [[BLANK]].","answers":[["humerus"]]},{"text":"The arm is enveloped by a sleeve of deep fascia called the [[BLANK]].","answers":[["brachial fascia","deep fascia of the arm"]]},{"text":"The inward projections of the brachial fascia are the medial and lateral [[BLANK]], which divide the arm into anterior and posterior compartments.","answers":[["inter-muscular septa","intermuscular septa"]]},{"text":"The muscles of the anterior compartment of the arm include the [[BLANK]], the [[BLANK]], and the Brachialis.","answers":[["Coracobrachialis"],["Biceps brachii","biceps"]]},{"text":"The primary artery and nerve located in the anterior compartment of the arm are the [[BLANK]] and the [[BLANK]].","answers":[["Brachial artery"],["Musculocutaneous nerve","musculo-cutaneous nerve"]]},{"text":"The Coracobrachialis originates from the tip of the [[BLANK]] in common with the short head of the biceps brachii.","answers":[["coracoid process"]]},{"text":"The Coracobrachialis muscle is supplied by the [[BLANK]] and acts to flex the forearm at the elbow joint.","answers":[["musculocutaneous nerve","musculo-cutaneous nerve"]]},{"text":"The long head of the Biceps brachii arises from the [[BLANK]] of the scapula and from the [[BLANK]].","answers":[["supraglenoid tubercle"],["glenoid labrum"]]},{"text":"The short head of the Biceps brachii inserts into the posterior rough part of the [[BLANK]].","answers":[["radial tuberosity"]]},{"text":"The long head tendon of the biceps gives off a fascial extension called the [[BLANK]], which merges with the deep fascia of the forearm.","answers":[["bicipital aponeurosis"]]},{"text":"The Biceps brachii acts as a strong [[BLANK]] when the forearm is flexed, performing all screwing movements.","answers":[["supinator"]]},{"text":"The Brachialis originates from the lower half of the front of the humerus and superiorly embraces the insertion of the [[BLANK]].","answers":[["deltoid","deltoid muscle"]]},{"text":"The Brachialis inserts into the ulnar tuberosity and the rough anterior surface of the [[BLANK]] of the ulna.","answers":[["coronoid process"]]},{"text":"The Brachialis muscle has a dual nerve supply: the musculocutaneous nerve provides motor supply, while the [[BLANK]] is proprioceptive.","answers":[["radial nerve"]]},{"text":"In some individuals, the suppressed lower head of the coracobrachialis is represented by a fibrous band called the [[BLANK]].","answers":[["ligament of Struthers","Struthers ligament"]]},{"text":"The ligament of Struthers extends from the trochlear spine to the [[BLANK]] of the humerus.","answers":[["medial epicondyle"]]},{"text":"The presence of the ligament of Struthers can cause clinical complications by compressing the [[BLANK]] or the brachial artery.","answers":[["median nerve"]]},{"text":"At the level of the coracobrachialis insertion, the circular shaft of the humerus undergoes a morphological change and becomes [[BLANK]].","answers":[["triangular","triangular shaped"]]},{"text":"The profunda brachii artery runs posteriorly through the [[BLANK]] of the humerus.","answers":[["spiral groove","radial groove"]]},{"text":"The superior ulnar collateral artery originates from the brachial artery and pierces the medial inter-muscular septum alongside the [[BLANK]].","answers":[["ulnar nerve"]]},{"text":"The median nerve crosses the [[BLANK]] from the lateral side to the medial side.","answers":[["brachial artery"]]},{"text":"The biceps tendon reflex is induced by the examiner placing their [[BLANK]] over the tendon and giving it a tap to trigger a reflex contraction.","answers":[["thumb"]]},{"text":"The musculocutaneous nerve arises from the [[BLANK]] of the brachial plexus at the lower border of the pectoralis minor.","answers":[["lateral cord"]]},{"text":"The musculocutaneous nerve leaves the axilla and enters the front of the arm by piercing the [[BLANK]].","answers":[["coracobrachialis","coracobrachialis muscle"]]},{"text":"The long head of the triceps muscle originates specifically from the [[BLANK]] of the scapula.","answers":[["infraglenoid tubercle"]]},{"text":"The triceps muscle inserts into the upper surface of the [[BLANK]] of the ulna to extend the forearm.","answers":[["olecranon process","olecranon"]]},{"text":"The radial nerve originates from the [[BLANK]] of the brachial plexus in the axilla and winds around the back of the arm.","answers":[["posterior cord"]]}];
+        
+        function isAnyCorrect(inputStr, targetVariants) {
+            const s1 = inputStr.toLowerCase().trim();
+            if (!s1) return false;
+            return targetVariants.some(target => {
+                const s2 = target.toLowerCase().trim();
+                if (s1 === s2) return true;
+                let longer = s1.length > s2.length ? s1 : s2;
+                let shorter = s1.length > s2.length ? s2 : s1;
+                if (longer.length === 0) return false;
+                let costs = [];
+                for (let i = 0; i <= longer.length; i++) {
+                    let lastValue = i;
+                    for (let j = 0; j <= shorter.length; j++) {
+                        if (i === 0) costs[j] = j;
+                        else if (j > 0) {
+                            let newValue = costs[j - 1];
+                            if (longer[i - 1] !== shorter[j - 1]) newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                            costs[j - 1] = lastValue;
+                            lastValue = newValue;
+                        }
+                    }
+                    if (i > 0) costs[shorter.length] = lastValue;
+                }
+                const similarity = (longer.length - costs[shorter.length]) / longer.length;
+                return similarity >= 0.85;
+            });
+        }
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_cloze_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: quizData.map(q => new Array(q.answers.length).fill('')) });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, qIndex) => {
+                let parts = q.text.split('[[BLANK]]');
+                let sentenceHtml = `<div class="box cloze-text"><span style="color:var(--accent); font-weight:bold; margin-right:10px;">${qIndex + 1}.</span>`;
+                for (let i = 0; i < parts.length; i++) {
+                    sentenceHtml += parts[i];
+                    if (i < parts.length - 1) {
+                        sentenceHtml += `<input type="text" class="cloze-input" id="blank-${qIndex}-${i}" autocomplete="off" oninput="updateProgress()">`;
+                    }
+                }
+                sentenceHtml += '</div>';
+                html += sentenceHtml;
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let attempted = 0;
+            quizData.forEach((q, qIndex) => {
+                let hasInput = false;
+                for (let i = 0; i < q.answers.length; i++) {
+                    const el = document.getElementById(`blank-${qIndex}-${i}`);
+                    if (el && el.value.trim() !== '') hasInput = true;
+                }
+                if (hasInput) attempted++;
+            });
+            document.getElementById('progress').innerText = `${attempted} / ${quizData.length} Attempted`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = quizData.map((q, qIndex) => q.answers.map((_, i) => {
+                    const el = document.getElementById(`blank-${qIndex}-${i}`);
+                    return el ? el.value : '';
+                }));
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let totalBlanks = 0;
+            let correctBlanks = 0;
+            let reviewHtml = '';
+            const userAnswers = quizData.map((q, qIndex) => q.answers.map((_, i) => {
+                const el = document.getElementById(`blank-${qIndex}-${i}`);
+                return el ? el.value : '';
+            }));
+
+            quizData.forEach((q, qIndex) => {
+                let parts = q.text.split('[[BLANK]]');
+                let reviewSentence = `<p><strong>${qIndex + 1}.</strong> `;
+                let allCorrectForThisQ = true;
+                for (let i = 0; i < parts.length; i++) {
+                    reviewSentence += parts[i];
+                    if (i < parts.length - 1) {
+                        totalBlanks++;
+                        const userVal = document.getElementById(`blank-${qIndex}-${i}`) ? document.getElementById(`blank-${qIndex}-${i}`).value : '';
+                        const targetVariants = q.answers[i];
+                        const correct = isAnyCorrect(userVal, targetVariants);
+                        if (correct) {
+                            correctBlanks++;
+                            reviewSentence += `<span style="color:var(--success); text-decoration:underline;">${userVal || targetVariants[0]}</span>`;
+                        } else {
+                            allCorrectForThisQ = false;
+                            reviewSentence += `<span style="color:var(--danger); text-decoration:line-through;">${userVal || '___'}</span> <span style="color:var(--success);">(${targetVariants[0]})</span>`;
+                        }
+                    }
+                }
+                reviewSentence += '</p>';
+                reviewHtml += `<div class="review-item ${allCorrectForThisQ ? 'correct' : 'incorrect'}">${reviewSentence}</div>`;
+            });
+
+            const percent = totalBlanks ? Math.round((correctBlanks / totalBlanks) * 100) : 0;
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Test Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let totalBlanks = 0;
+                let correctBlanks = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, qIndex) => {
+                    let parts = q.text.split('[[BLANK]]');
+                    let reviewSentence = `<p><strong>${qIndex + 1}.</strong> `;
+                    let allCorrectForThisQ = true;
+                    const savedInputs = saved.userAnswers[qIndex] || new Array(q.answers.length).fill('');
+                    for (let i = 0; i < parts.length; i++) {
+                        reviewSentence += parts[i];
+                        if (i < parts.length - 1) {
+                            totalBlanks++;
+                            const userVal = savedInputs[i] || '';
+                            const targetVariants = q.answers[i];
+                            const correct = isAnyCorrect(userVal, targetVariants);
+                            if (correct) {
+                                correctBlanks++;
+                                reviewSentence += `<span style="color:var(--success); text-decoration:underline;">${userVal || targetVariants[0]}</span>`;
+                            } else {
+                                allCorrectForThisQ = false;
+                                reviewSentence += `<span style="color:var(--danger); text-decoration:line-through;">${userVal || '___'}</span> <span style="color:var(--success);">(${targetVariants[0]})</span>`;
+                            }
+                        }
+                    }
+                    reviewSentence += '</p>';
+                    reviewHtml += `<div class="review-item ${allCorrectForThisQ ? 'correct' : 'incorrect'}">${reviewSentence}</div>`;
+                });
+                const percent = totalBlanks ? Math.round((correctBlanks / totalBlanks) * 100) : 0;
+                document.getElementById('result-title').innerText = `Test Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                renderQuestions();
+                const savedInputsAll = saved.userAnswers || [];
+                quizData.forEach((q, qIndex) => {
+                    const savedForQ = savedInputsAll[qIndex] || [];
+                    for (let i = 0; i < q.answers.length; i++) {
+                        const el = document.getElementById(`blank-${qIndex}-${i}`);
+                        if (el && savedForQ[i] !== undefined) el.value = savedForQ[i];
+                    }
+                });
+                updateProgress();
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>
