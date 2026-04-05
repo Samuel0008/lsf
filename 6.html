@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"q":"What is the most accurate definition of an anastomosis based on the provided text?","options":["The primary blood supply to a specific organ or limb","The communication between neighbouring vessels","The process of forming new blood vessels after an injury","A blood clot that obstructs arterial flow"],"answer":1},{"q":"Circulation that occurs through an anastomosis is formally referred to as:","options":["Systemic circulation","Terminal circulation","Collateral circulation","Pulmonary circulation"],"answer":2},{"q":"How many distinct anastomoses are located around the shoulder joint?","options":["One","Two","Three","Four"],"answer":1},{"q":"What are the specific names of the anastomoses found around the shoulder joint?","options":["Acromial anastomosis and glenoid anastomosis","Scapular anastomosis and anastomosis around the surgical neck of the humerus","Clavicular anastomosis and subscapular anastomosis","Axillary anastomosis and brachial anastomosis"],"answer":1},{"q":"The scapular anastomosis occurs in which three specific fossae?","options":["Subscapular, supraspinous, and infraspinous fossae","Glenoid, subscapular, and supraspinous fossae","Infraspinous, coronoid, and subscapular fossae","Supraspinous, infraspinous, and radial fossae"],"answer":0},{"q":"The arterial anastomosis around the scapula is principally formed between branches of which two major arteries?","options":["First part of the subclavian artery and the first part of the axillary artery","Second part of the subclavian artery and the third part of the axillary artery","First part of the subclavian artery and the third part of the axillary artery","Third part of the subclavian artery and the second part of the axillary artery"],"answer":2},{"q":"At which two specific sites does the scapular anastomosis take place?","options":["The glenoid cavity and the coracoid process","Around the body of the scapula and over the acromion process","The lateral border of the scapula and the spine of the scapula","The medial border of the scapula and the supraglenoid tubercle"],"answer":1},{"q":"Where is the subclavian artery located anatomically?","options":["Beneath the clavicle","Above the clavicle","Posterior to the sternum","Anterior to the pectoralis major"],"answer":0},{"q":"Regarding the upper limb, what is the primary function of the subclavian artery?","options":["It is the sole venous return from the upper limb","It provides innervation to the upper limb","It is the main source of blood supply to the upper limb","It supplies only the shoulder joint and not the arm"],"answer":2},{"q":"In addition to the upper limb, which structures does the subclavian artery supply through its branches?","options":["The abdominal wall, liver, and spleen","A considerable part of the thoracic wall, head, neck, and brain","The myocardium, lungs, and diaphragm","The lower neck, thyroid, and upper esophagus only"],"answer":1},{"q":"What is the anatomical relationship of the subclavian artery to the scalenus anterior muscle as it arches in the neck?","options":["It passes anterior to the scalenus anterior muscle","It passes posterior to the scalenus anterior muscle","It passes through the belly of the scalenus anterior muscle","It runs superior to the scalenus anterior muscle"],"answer":1},{"q":"At what precise anatomical landmark does the subclavian artery end and change its name?","options":["The inferior border of the teres major muscle","The outer border of the 1st rib","The medial border of the scalenus anterior","The lateral border of the pectoralis minor"],"answer":1},{"q":"After the subclavian artery ends at its terminal landmark, what vessel does it become?","options":["Brachial artery","Axillary artery","Radial artery","Ulnar artery"],"answer":1},{"q":"How many branches does the subclavian artery typically give off?","options":["Two branches","Three branches","Four branches","Five branches"],"answer":2},{"q":"With one exception, from which part of the subclavian artery do all its branches generally arise?","options":["The first part","The second part","The third part","The terminal part"],"answer":0},{"q":"On the right side of the body, from where does the costocervical trunk arise?","options":["The first part of the subclavian artery","The second part of the subclavian artery","The third part of the subclavian artery","The thyrocervical trunk"],"answer":1},{"q":"Which of the following branches arises from the first part of the subclavian artery on the left side only?","options":["Vertebral artery","Thyrocervical trunk","Costocervical trunk","Internal thoracic artery"],"answer":2},{"q":"What are the three specific branches of the thyrocervical trunk?","options":["Superior thyroid, transverse cervical, and suprascapular arteries","Inferior thyroid, transverse cervical, and suprascapular arteries","Inferior thyroid, ascending cervical, and subscapular arteries","Superior thyroid, dorsal scapular, and suprascapular arteries"],"answer":1},{"q":"Which muscle is responsible for dividing the subclavian artery into three distinct parts?","options":["Sternocleidomastoid muscle","Scalenus medius muscle","Scalenus anterior muscle","Pectoralis minor muscle"],"answer":2},{"q":"What are the anatomical boundaries of the first part of the subclavian artery?","options":["From its origin to the medial border of the scalenus anterior","From the medial border to the lateral border of the scalenus anterior","From the lateral border of the scalenus anterior to the outer border of the 1st rib","Behind the scalenus anterior muscle"],"answer":0},{"q":"Where is the second part of the subclavian artery situated?","options":["Anterior to the scalenus anterior muscle","Behind the scalenus anterior muscle","Lateral to the scalenus anterior muscle","Medial to the scalenus anterior muscle"],"answer":1},{"q":"What marks the boundaries of the third part of the subclavian artery?","options":["Origin to the medial border of the scalenus anterior","Medial border of the scalenus anterior to the outer border of the 1st rib","Lateral border of the scalenus anterior to the outer border of the 1st rib","Lateral border of the scalenus anterior to the inferior border of the teres major"],"answer":2},{"q":"What occasional branch may arise from the third part of the subclavian artery?","options":["Vertebral artery","Inferior thyroid artery","Dorsal scapular artery","Transverse cervical artery"],"answer":2},{"q":"When the dorsal scapular artery is present, which artery does it replace?","options":["The superficial branch of the transverse cervical artery","The deep branch of the transverse cervical artery","The suprascapular artery","The circumflex scapular artery"],"answer":1},{"q":"Which branch of the thyrocervical trunk is directly involved in the anastomosis around the body of the scapula?","options":["Inferior thyroid artery","Internal thoracic artery","Suprascapular artery","Anterior circumflex humeral artery"],"answer":2},{"q":"Along with the suprascapular artery, which other branch of the thyrocervical trunk participates in the anastomosis around the body of the scapula?","options":["The deep branch of the transverse cervical artery","The superficial branch of the transverse cervical artery","The acromial branch of the thoraco-acromial artery","The circumflex scapular artery"],"answer":0},{"q":"Which branch originating from the third part of the axillary artery contributes to the anastomosis around the body of the scapula?","options":["Anterior circumflex humeral artery","Posterior circumflex humeral artery","Circumflex scapular artery (branch of the subscapular artery)","Lateral thoracic artery"],"answer":2},{"q":"The anastomosis over the acromion process involves branches from all of the following EXCEPT:","options":["Thoraco-acromial artery","Suprascapular artery","Posterior circumflex humeral artery","Anterior circumflex humeral artery"],"answer":3},{"q":"The anastomosis around the surgical neck of the humerus occurs between branches of which specific part of the axillary artery?","options":["1st part","2nd part","3rd part","It occurs between branches of the subclavian artery, not the axillary"],"answer":2},{"q":"In the event of a blockage between the first part of the subclavian artery and the third part of the axillary artery, what vital function does the scapular anastomosis serve?","options":["It provides venous drainage to bypass the blockage","It serves as a pathway for collateral circulation to ensure adequate blood supply to the upper limb","It shunts blood to the brain to prevent cerebral ischemia","It increases blood pressure to force the blockage open"],"answer":1}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>

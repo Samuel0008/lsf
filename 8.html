@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"q":"Anatomically, what is the cubital fossa?","options":["A circular depression on the posterior aspect of the elbow","A triangular depression in front of the elbow joint","A quadrilateral space in the axilla","A diamond-shaped space behind the knee"],"answer":1},{"q":"Proximally, the base of the cubital fossa is formed by which of the following?","options":["An imaginary line joining the two epicondyles of the humerus","The bicipital aponeurosis","The horizontal border of the pronator teres","The medial border of the brachioradialis"],"answer":0},{"q":"The apex of the cubital fossa is directed downward and laterally. What specific muscular overlap forms this apex?","options":["The supinator overlapped by the brachialis","The pronator teres overlapped by the brachioradialis","The biceps brachii overlapped by the pronator teres","The brachioradialis overlapped by the flexor carpi radialis"],"answer":1},{"q":"Which of the following forms the medial boundary of the cubital fossa?","options":["The lateral border of the pronator teres","The medial border of the pronator teres","The lateral border of the brachioradialis","The medial border of the brachioradialis"],"answer":0},{"q":"The lateral boundary of the cubital fossa is constituted by which specific muscle border?","options":["Lateral border of the brachioradialis","Medial border of the brachioradialis","Lateral border of the pronator teres","Medial border of the extensor carpi radialis longus"],"answer":1},{"q":"Which of the following veins is located in the superficial fascia immediately deep to the skin of the cubital fossa's roof?","options":["Cephalic vein","Basilic vein","Median cubital vein","Brachial vein"],"answer":2},{"q":"Along with the median cubital vein, which two nerves are found in the superficial fascia of the cubital fossa's roof?","options":["Median nerve and ulnar nerve","Lateral cutaneous nerve of forearm and medial cutaneous nerve of forearm","Posterior cutaneous nerve of arm and superficial radial nerve","Musculocutaneous nerve and radial nerve"],"answer":1},{"q":"Located on the deeper plane of the roof, beneath the superficial fascia, are the deep fascia and which other structural component?","options":["Bicipital aponeurosis","Brachial artery","Tendon of the brachialis","Supinator muscle"],"answer":0},{"q":"Which two muscles form the floor of the cubital fossa?","options":["Biceps brachii and coracobrachialis","Pronator teres and brachioradialis","Brachialis and supinator","Triceps brachii and anconeus"],"answer":2},{"q":"The mnemonic \"MBBS\" is used to recall the contents of the cubital fossa. What is the spatial arrangement of this mnemonic?","options":["Lateral to medial","Medial to lateral","Superior to inferior","Anterior to posterior"],"answer":1},{"q":"In the mnemonic \"MBBS\" for the cubital fossa contents, what does the \"M\" represent?","options":["Musculocutaneous nerve","Median nerve","Medial cutaneous nerve","Median cubital vein"],"answer":1},{"q":"How does the median nerve exit the cubital fossa?","options":["By passing superficial to the bicipital aponeurosis","By passing between the two heads of the supinator","By passing between the two heads of the pronator teres","By running deep to the brachioradialis"],"answer":2},{"q":"Based on the text, where is the ulnar nerve located in relation to this general region?","options":["Superficial to the bicipital aponeurosis","Deep to the deep head","Within the lateral boundary of the fossa","Anterior to the brachial artery"],"answer":1},{"q":"The brachial artery is located in the cubital fossa. What is its position relative to the median nerve?","options":["Medial to the median nerve","Lateral to the median nerve","Superficial to the median nerve","Posterior to the median nerve"],"answer":1},{"q":"The brachial artery gives off two terminal branches situated medial to the biceps brachii. What are they?","options":["Profunda brachii and superior ulnar collateral arteries","Anterior and posterior interosseous arteries","Ulnar and radial arteries","Common interosseous and recurrent ulnar arteries"],"answer":2},{"q":"Where is the tendon of the biceps brachii located in relation to the brachial artery within the cubital fossa?","options":["Lateral to the brachial artery","Medial to the brachial artery","Superficial to the brachial artery","It does not enter the cubital fossa"],"answer":0},{"q":"The \"S\" in the \"MBBS\" mnemonic represents which structure?","options":["Supinator muscle","Superficial branch of the radial nerve","Superior ulnar collateral artery","Subclavian artery"],"answer":1},{"q":"Before it divides, the radial nerve is located superior lateral to the cubital fossa. Which muscle forms the medial border of this intermuscular gap?","options":["Brachioradialis","Extensor carpi radialis longus","Brachialis","Pronator teres"],"answer":2},{"q":"Which two muscles form the lateral boundary of the gap where the radial nerve is located before dividing?","options":["Brachialis and supinator","Brachioradialis and extensor carpi radialis longus","Pronator teres and flexor carpi radialis","Biceps brachii and coracobrachialis"],"answer":1},{"q":"While in the intermuscular gap, the radial nerve divides. Where does its deep branch go?","options":["It enters the cubital fossa directly","It passes between the two heads of the pronator teres","It passes between the two heads of the supinator before entering the posterior forearm","It pierces the bicipital aponeurosis"],"answer":2},{"q":"Clinically, what is the significance of the bicipital aponeurosis regarding the median cubital vein?","options":["It provides the blood supply to the vein","It separates the vein from underlying important structures like the brachial artery and median nerve","It drains lymphatic fluid from the vein","It attaches the vein directly to the humerus"],"answer":1},{"q":"The bicipital aponeurosis is best described as:","options":["A triangular muscular structure","A quadrilateral fibrous expression from the medial side of the biceps brachii tendon","A cylindrical ligament attaching to the ulna","A nervous plexus deep to the elbow"],"answer":1},{"q":"How many primary structural components make up the boundaries and surfaces of the cubital fossa?","options":["Three","Four","Five","Six"],"answer":2},{"q":"Which structure provides a firm background for the median cubital vein?","options":["The brachialis muscle","The bicipital aponeurosis","The supinator muscle","The median nerve"],"answer":1},{"q":"The pronator teres contributes to the formation of which boundary of the cubital fossa?","options":["Lateral boundary","Medial boundary","Superior boundary (Base)","Floor"],"answer":1},{"q":"The medial border of the brachioradialis forms which part of the cubital fossa?","options":["The lateral boundary","The medial boundary","The roof","The base"],"answer":0},{"q":"In the cubital fossa contents mnemonic \"MBBS\", what does the first \"B\" denote (moving medial to lateral)?","options":["Biceps brachii tendon","Brachialis muscle","Brachial artery","Basilic vein"],"answer":2},{"q":"On the bicipital aponeurosis, which specific structure is explicitly stated to lie on top of it?","options":["Median cubital vein","Median nerve","Radial artery","Ulnar nerve"],"answer":0},{"q":"Which terminal branch of the radial nerve actually enters the cubital fossa?","options":["The deep branch","The superficial branch","The posterior interosseous nerve","The recurrent radial branch"],"answer":1},{"q":"If the brachial artery is lateral to the median nerve, and the biceps brachii tendon is lateral to the brachial artery, which structure is the most medial of the three?","options":["Median nerve","Brachial artery","Biceps brachii tendon","They are all in the same sagittal plane"],"answer":0}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>
