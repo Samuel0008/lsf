@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+    <script>
+        const quizData = [{"q":"In mitosis, what happens to the centrioles during Prophase?","options":["They duplicate into four","They separate to opposite poles","They align at the equator","They disappear"],"answer":1},{"q":"At what stage of mitosis do the chromosomes become distinctly short and the nuclear membrane disappears?","options":["Interphase","Metaphase","Prophase","Telophase"],"answer":2},{"q":"Which of the following events accurately describes Anaphase during mitosis?","options":["Chromosomes align at the equator","The nuclear membrane reappears","Vertical splitting occurs at the centromere","Spindles are synthesized from macromolecules"],"answer":2},{"q":"Meiosis 1 is specifically characterized as what type of division?","options":["Mitotic division","Duplication division","Reduction division","Equatorial division"],"answer":2},{"q":"During Prophase 1 of meiosis, in which sub-stage does the crossing over of homologous chromosomes occur to exchange genetic material?","options":["Leptotene","Zygotene","Pachytene","Diplotene"],"answer":2},{"q":"The point of crossover, known as chiasmata, becomes visible during which stage of Prophase 1?","options":["Pachytene","Diplotene","Diakinesis","Leptotene"],"answer":1},{"q":"What is the specific genetic outcome at the end of Telophase 1 in meiosis?","options":["2 diploid daughter cells with identical genetic constituents","4 haploid daughter cells with non-identical genetic constituents","2 haploid daughter cells with non-identical genetic constituents","2 haploid daughter cells with identical genetic constituents"],"answer":2},{"q":"Non-dysjunction is a chromosomal abnormality that results from the failure of relevant chromosomes to separate during which specific stage?","options":["Anaphase of Mitosis","Telophase 2","Prophase 1 (failure of diakinesis)","Metaphase 1"],"answer":2},{"q":"Which condition describes when sister chromatids do not separate appropriately during anaphase, leaving one daughter cell lacking a complete pair of chromosomes?","options":["Translocation","Mosaics","Chimeras","Anaphase lag"],"answer":3},{"q":"Approximately how many days does the entire process of spermatogenesis take in males?","options":["24 days","40 days","64 days","16 days"],"answer":2},{"q":"The phase of spermatogenesis called spermatocytosis, where Type B spermatogonia undergo mitosis to form primary spermatocytes, takes about how long?","options":["A few hours","16 days","24 days","40 days"],"answer":1},{"q":"Which of the following processes describes Spermatidogenesis?","options":["Conversion of secondary spermatocytes into spermatids by mitotic division","Replicating Type A spermatogonia into Types A and B","Maturation of spermatids into spermatozoa","Reduction division of primary spermatocytes into secondary spermatocytes"],"answer":0},{"q":"Spermiogenesis is the final process of maturity that takes approximately 24 days. What occurs during this phase?","options":["Primary spermatocytes divide into secondary spermatocytes","Round spermatids metamorphose into spermatozoa","Spermatogonia replicate themselves","Secondary spermatocytes become spermatids"],"answer":1},{"q":"During the \"Tail phase\" of spermiogenesis, what structure grows out from the centrioles to form the flagellum?","options":["Acrosomal vesicles","Mitochondria","Microtubules","Excess cytoplasm"],"answer":2},{"q":"In the maturation stage of spermiogenesis, where do the mitochondria cluster to provide energy for movement?","options":["Around the acrosome","Within the nucleus","Around the tail","In the excess cytoplasm"],"answer":2},{"q":"At what point in fetal development does oogenesis begin in the prenatal ovary?","options":["Week 4","Week 10","Week 20","At birth"],"answer":1},{"q":"By 7 months of gestation, active mitosis in the primordial follicles results in approximately how many follicles?","options":["200,000","40,000","2 million","7 million"],"answer":3},{"q":"At the time of birth, the primary oocytes within the primordial follicles are arrested at which stage of cell division?","options":["Metaphase 2","Prophase 1 of Meiosis 1","Metaphase 1","Prophase 2 of Meiosis 2"],"answer":1},{"q":"How many primordial follicles typically remain in the ovaries at the onset of puberty?","options":["7 million","2 million","200,000","40,000"],"answer":3},{"q":"During each regular monthly sexual cycle, approximately how many primordial follicles enlist for development?","options":["1 to 5","10 to 50","100 to 150","400 to 450"],"answer":1},{"q":"A primary follicle consists of a primary oocyte surrounded by the zona pellucida and what type of cell layer?","options":["A single layer of flattened follicular cells","A single layer of spindle cells","Multilayered cuboidal granulosa cells","Theca interna and externa"],"answer":1},{"q":"The transition to a secondary (preantral) follicle is characterized by which of the following events?","options":["Formation of a single large cavity called an antrum","Condensation of thecal cells","Multilayered cuboid cells secreting fluid to create spaces","Release of the secondary oocyte"],"answer":2},{"q":"During ovulation, the released female gamete is a secondary oocyte arrested at which stage of cell division?","options":["Prophase 1","Metaphase 1","Metaphase 2","Telophase 2"],"answer":2},{"q":"What specific name is given to the granulosa cell layer that directly surrounds the secondary oocyte and zona pellucida in a mature follicle?","options":["Theca externa","Cumulus oophorus","Discus proligerus","Corona radiata"],"answer":3},{"q":"The cells projecting into the antrum of a mature Graafian follicle are referred to as the:","options":["Theca interna","Cumulus oophorus","Corona radiata","Discus proligerus"],"answer":1},{"q":"The outer condensed fibrous cells surrounding a mature follicle form which structure?","options":["Theca interna","Theca externa","Corpus luteum","Corpus albicans"],"answer":1},{"q":"Ovulation, which releases the secondary oocyte, typically occurs on around day 14 of the cycle in response to a surge of which hormone?","options":["Estrogen","Progesterone","Luteinizing Hormone (LH)","Follicle Stimulating Hormone (FSH)"],"answer":2},{"q":"Following ovulation, the remaining granulosa cells form the corpus luteum. What does this structure eventually degenerate into?","options":["Graafian follicle","Corpus albicans","Theca externa","Primary follicle"],"answer":1},{"q":"The expelled secondary oocyte degenerates if it is not fertilized. How long after ovulation does this degeneration occur?","options":["12 hours","24 hours (1 day)","48 hours (2 days)","72 hours (3 days)"],"answer":1},{"q":"Which of the following definitions best describes \"Folliculogenesis\"?","options":["The breakdown of the zona pellucida by acrosomal enzymes","The formation of sperm in the seminiferous tubules","The sequential maturation of ovarian follicles from primordial to Graafian follicle","The abnormal separation of chromosomes during meiosis"],"answer":2}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>
