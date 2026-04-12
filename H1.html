@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+    <script>
+        const quizData = [{"q":"What is the primary chemical composition of the mineralized extracellular matrix of bone tissue?","options":["Calcium carbonate crystals","Hydroxyapatite crystals","Magnesium hydroxide crystals","Calcium oxalate crystals"],"answer":1},{"q":"Which collagen types predominantly constitute the organic matrix of bone tissue?","options":["Type II and III","Type I and VI","Type IV and V","Type III and IV"],"answer":1},{"q":"What is the specific anatomical function of Sharpey's fibers in bone histology?","options":["To line the inner medullary cavity of long bones","To anchor ligaments and tendons to the bone by continuous collagen fibers","To connect adjacent osteons to one another","To provide a neural pathway for the central blood vessels"],"answer":1},{"q":"Which of the following best describes the histological structure of flat bones, such as the parietal bone or scapula?","options":["Exclusively composed of compact bone with no medullary or spongy tissue","Exclusively composed of spongy bone covered directly by hyaline cartilage","Thick layers of compact bone enclosing an intervening layer of spongy bone","A thin layer of compact bone enclosing a massive continuous medullary cavity"],"answer":2},{"q":"Regarding the lymphatic drainage of bone tissue, which of the following statements is true?","options":["Lymphatic vessels are abundant within the Haversian canals","Lymphatic vessels travel extensively through Volkmann's canals","Bone tissue lacks lymphatic vessels; drainage occurs only from the periosteum","Lymphatic drainage occurs primarily through the endosteal lining"],"answer":2},{"q":"In mature compact bone, what are the remnants of previous concentric lamellae located between intact intact osteons known as?","options":["Circumferential lamellae","Interstitial lamellae","Endosteal lamellae","Haversian lamellae"],"answer":1},{"q":"Which defining morphological feature clearly distinguishes Volkmann's canals from Haversian canals?","options":["Volkmann's canals do not contain blood vessels or nerves","Volkmann's canals are not surrounded by concentric lamellae","Volkmann's canals are located exclusively in cancellous bone","Volkmann's canals run strictly parallel to the long axis of the diaphysis"],"answer":1},{"q":"In comparing immature (woven) bone to mature (lamellar) bone, which of the following histological characteristics is true of immature bone?","options":["It is more heavily mineralized with hydroxyapatite","It contains significantly fewer cells per unit area","It stains more intensely with eosin compared to mature bone","It contains more ground substance and stains more intensely with hematoxylin"],"answer":3},{"q":"In a healthy adult skeleton, where can areas of immature (woven) bone typically be found?","options":["Deep within the diaphysis of long bones","In the alveolar sockets and where tendons insert into bones","Within the outer circumferential lamellae of the parietal bone","Covering the articular surfaces of short bones"],"answer":1},{"q":"Osteoprogenitor cells located on the internal and external surfaces of bone are directly derived from which cell lineage?","options":["Hematopoietic stem cells","Mesenchymal stem cells","Monocyte-macrophage precursors","Neutrophilic granulocyte lineage"],"answer":1},{"q":"Which cellular structures are primarily responsible for the communication between osteoblast processes and adjacent osteocytes?","options":["Tight junctions","Desmosomes","Gap junctions","Hemidesmosomes"],"answer":2},{"q":"Under conditions of reduced mechanical load on the bone, osteocytes actively initiate the expression of which specific substance?","options":["Type II collagen","Matrix metalloproteinases (MMPs)","Intracellular hydroxyapatite crystals","Bone morphogenetic proteins (BMPs)"],"answer":1},{"q":"What term is specifically applied to the resting, flattened cells with attenuated cytoplasm that cover external bone surfaces not undergoing active remodeling?","options":["Osteoclasts","Active osteoblasts","Osteoprogenitor cells","Periosteal cells (bone-lining cells)"],"answer":3},{"q":"Osteoclasts are multinucleated, phagocytotic cells responsible for active bone resorption. From which precursor lineage do they originate?","options":["Mesenchymal stem cells","Local osteoprogenitor cells","Granulocyte and monocyte lineages","Endothelial stem cell lineages"],"answer":2},{"q":"The localized, shallow bay in the bone matrix directly situated under an actively resorbing osteoclast is anatomically referred to as:","options":["Volkmann's canal","Haversian lacuna","Resorption bay (Howship's lacuna)","Primary ossification center"],"answer":2},{"q":"Which ossification process is primarily responsible for the embryological formation of the flat bones of the skull and the mandible?","options":["Endochondral ossification","Intramembranous ossification","Appositional cartilaginous growth","Interstitial cartilaginous growth"],"answer":1},{"q":"During the initial stages of endochondral ossification, what distinct event occurs to the chondrocytes at the center of the growing cartilage model?","options":["They rapidly multiply to form the primary ossification center","They transform directly into osteoprogenitor cells","They enlarge and die as the surrounding matrix calcifies","They migrate to the metaphyses to form the epiphyseal plate"],"answer":2},{"q":"What is the morphological appearance of highly active osteoblasts that are actively secreting bone matrix?","options":["Flat and highly attenuated","Multinucleated and giant","Cuboidal or polygonal in shape","Spindle-shaped with sparse cytoplasm"],"answer":2},{"q":"In the context of bone anatomy, what is the primary composition of yellow bone marrow located within the cavities of adult bones?","options":["Active hematopoietic tissue","Adipose tissue (fat cells)","Dense regular connective tissue","Remnants of hyaline cartilage"],"answer":1},{"q":"The endosteum is a cellular layer lining the internal bone cavities. Which of the following best describes its histological composition?","options":["A thick, vascular layer of dense irregular connective tissue","A multi-layered stratified squamous epithelium","An often one-cell-thick layer containing osteoprogenitor cells and bone-lining cells","A layer consisting exclusively of active, multinucleated osteoclasts"],"answer":2},{"q":"Which structural component accounts for approximately 90% of the total weight of the organic bone matrix?","options":["Chondroitin sulfate","Collagen molecules","Non-collagenous structural proteins","Unbound glycosaminoglycans"],"answer":1},{"q":"In applied clinical anatomy, fluorescent tetracycline labeling is utilized specifically to measure which dynamic parameter of bone?","options":["The rate of osteoclast-mediated bone resorption","The rate of bone apposition (new matrix deposition)","The exact count of osteocytes per Haversian system","The proliferation rate of chondrocytes at the epiphyseal plate"],"answer":1},{"q":"Osteopetrosis, clinically known as \"marble bone disease\", is fundamentally caused by a genetic defect resulting in:","options":["Excessive production of unmineralized bone matrix by osteoblasts","Defective bone resorption due to osteoclasts lacking a functional ruffled border","Overactive parathyroid glands causing severe demineralization","A complete embryological absence of endochondral ossification"],"answer":1},{"q":"Osteomalacia is a pathological condition defined by impaired bone mineralization in adults. Which disease presents with a similar underlying pathogenesis but occurs specifically in children?","options":["Osteopetrosis","Rickets","Pituitary dwarfism","Osteitis fibrosa cystica"],"answer":1},{"q":"An adult patient presents with physical features consistent with excessive growth hormone secretion after the normal closure of their epiphyseal plates. What is the clinical diagnosis?","options":["Gigantism","Acromegaly","Osteitis fibrosa cystica","Pituitary dwarfism"],"answer":1},{"q":"During intramembranous ossification, what is the cellular fate of osteoblasts once they become completely surrounded by the newly secreted, mineralized bone matrix?","options":["They undergo immediate apoptosis","They fuse together to form osteoclasts","They dedifferentiate into mesenchymal stem cells","They mature into maintaining osteocytes within lacunae"],"answer":3},{"q":"Which of the following primary malignant bone tumors is microscopically characterized by pleomorphic, mitotically active cells that are directly associated with osteoid production?","options":["Osteoclastoma","Osteoblastoma","Osteosarcoma","Chondrosarcoma"],"answer":2},{"q":"Mature spongy bone (cancellous bone) shares microscopic structural similarities with mature compact bone. However, its primary distinguishing architectural feature is that the tissue is arranged as:","options":["Densely packed, concentric Haversian systems","A solid, avascular sheet of extracellular matrix","A spongelike, interconnecting meshwork of trabeculae","A highly vascularized cartilaginous precursor model"],"answer":2},{"q":"According to the gross anatomy of a long bone, which specific region contains the epiphyseal line?","options":["The diaphyseal shaft","The central medullary cavity","The metaphysis","The nutrient foramen"],"answer":2},{"q":"Which of the following visceral organs is NOT classically recognized among the most frequent primary sites for malignancies that metastasize directly to bone tissue?","options":["Breast","Lungs","Pancreas","Prostate"],"answer":2}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>

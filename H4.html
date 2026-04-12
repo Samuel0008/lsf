@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+    <script>
+        const quizData = [{"q":"According to the classification of muscle tissues, which of the following best describes smooth muscle?","options":["Striated and involuntary","Non-striated and voluntary","Non-striated and involuntary","Striated and voluntary"],"answer":2},{"q":"In the ultrastructure of a myofibril, the thick, dark, anisotropic (A) bands are primarily composed of which myofilament?","options":["Actin","Troponin","Myosin","Tropomyosin"],"answer":2},{"q":"Which of the following is a characteristic function of smooth muscle tissue?","options":["Rhythmic contraction of the heart","Voluntary movement of the skeleton","Churning of food via peristalsis","Generating fast, explosive body movements"],"answer":2},{"q":"From which specific embryonic precursor cells do smooth muscle cells initially arise before differentiating into myoblasts?","options":["Ectodermal neural crest cells","Mesenchymal cells","Endodermal epithelial cells","Hematopoietic stem cells"],"answer":1},{"q":"Which of the following specialized intercellular junctions are characteristically found within the intercalated discs of cardiac muscle?","options":["Tight junctions and hemidesmosomes","Gap junctions and desmosomes","Adherens junctions and tight junctions","Synaptic clefts and motor end plates"],"answer":1},{"q":"According to functional classification, which of the following is NOT one of the three recognized types of cardiac muscle cells?","options":["Contractile cardiomyocytes","Conducting cardiomyocytes","Secretory cardiomyocytes","Satellite cardiomyocytes"],"answer":3},{"q":"In the cardiac conducting system, which modified structures form the specialized pathways that coordinate cardiac contraction?","options":["T-tubules","Sarcoplasmic reticulum","Purkinje fibers","Satellite cells"],"answer":2},{"q":"Histologically, how is the nuclear arrangement in a mature skeletal muscle fiber distinctively described?","options":["Single, centrally located nucleus","Multiple nuclei located centrally","Multiple nuclei placed peripherally beneath the sarcolemma","Anucleate, similar to mature erythrocytes"],"answer":2},{"q":"In the schematic of a skeletal muscle sarcomere, the Z-line represents the band of connection for which filaments?","options":["Actin filaments belonging to two neighboring sarcomeres","Myosin filaments within the same sarcomere","Actin and myosin filaments interacting directly","Tropomyosin and troponin complexes only"],"answer":0},{"q":"Within the A-band of a sarcomere, there is a specific region known as the H-zone. What does this zone anatomically represent?","options":["A zone of pure actin filaments","A zone containing only myosin filaments with no overlap of actin","The specific site where actin and myosin firmly cross-link","The border connection between two consecutive sarcomeres"],"answer":1},{"q":"Based on the sliding filament theory, what happens to the mathematical formula of a sarcomere (S) during full contraction?","options":["S = I + A","S = A","S = 1/2 I + H","S = Z + M"],"answer":1},{"q":"What is the primary excitatory neurotransmitter released into the motor end plate to stimulate a skeletal muscle fiber?","options":["Norepinephrine","Epinephrine","Acetylcholine","Dopamine"],"answer":2},{"q":"In skeletal muscle fibers, where are the \"triads\" (the close apposition of a T-tubule with cisternae of the sarcoplasmic reticulum) classically positioned?","options":["Exactly at the Z-line","At the M-line","Close to the border between the A- and I-bands","In the center of the H-zone"],"answer":2},{"q":"Embryologically, the myoblasts that give rise to all skeletal muscle fibers originate specifically from which layer?","options":["Splanchnic mesoderm","Paraxial mesoderm (myotome)","Lateral plate mesoderm","Neural ectoderm"],"answer":1},{"q":"During the development of a skeletal muscle fiber, what uniquely characterizes the intermediate \"myotube\" stage?","options":["It is a mononuclear cell with a peripherally displaced nucleus","It is a multinucleated syncytium with centrally located nuclei","It is an anucleate structure filled solely with myofibrils","It is a cluster of dividing stem cells outside the basal lamina"],"answer":1},{"q":"Which cell type is closely apposed to muscle fibers within the basal lamina and is capable of regenerating damaged skeletal muscle fibers?","options":["Fibroblasts","Cardiomyocytes","P-cells","Satellite cells"],"answer":3},{"q":"In the gross and microscopic organization of a skeletal muscle, which connective tissue layer directly surrounds an individual muscle fascicle?","options":["Epimysium","Perimysium","Endomysium","Sarcolemma"],"answer":1},{"q":"What type of connective tissue primarily composes tendons, enabling them to transduce generated force from muscle fibers to bone?","options":["Dense irregular connective tissue","Dense regular connective tissue","Loose areolar connective tissue","Elastic cartilage"],"answer":1},{"q":"Red skeletal muscle fibers are functionally optimized for sustained force production (e.g., posture control). Which intracellular features uniquely support this?","options":["Large amounts of myoglobin and mitochondria","High levels of ATPase and sparse mitochondria","Abundant glycogen stores and low myoglobin","Extensive sarcoplasmic reticulum and few capillaries"],"answer":0},{"q":"White muscle fibers contract rapidly. What specific enzymatic property of their myosin isoform accounts for this fast contraction?","options":["Low ATPase activity","High ATPase activity","Absence of ATPase activity","Dependence on anaerobic glycolysis"],"answer":1},{"q":"According to muscle fiber typing, fast-twitch fibers are best suited for which of the following athletic events?","options":["Marathon running","Long-distance triathlons","Endurance cycling","Pole vaulting and sprinting races"],"answer":3},{"q":"Which statement accurately defines the composition of a single motor unit?","options":["A group of motor neurons innervating a single muscle fiber","Groups of muscle fibers innervated by multiple motor neurons","A group of muscle fibers innervated by one motor neuron and its branches","A mixed bundle of slow-twitch and fast-twitch fibers controlled by one neuron"],"answer":2},{"q":"In a typical motor unit, what is a strict rule regarding the muscle fiber types it contains?","options":["It must contain an equal mix of red and white fibers","All muscle fibers within a single motor unit are of the same type","Fast-twitch units contain only smooth muscle cells","Fiber types spontaneously change depending on daily diet"],"answer":1},{"q":"An athlete undergoes vigorous physical training, leading to increased muscle mass. Histologically, this growth is primarily due to:","options":["Hyperplasia (increase in cell number)","Hypertrophy (increase in fiber diameter)","Neoplasia (uncontrolled cell division)","Metaplasia (change in tissue type)"],"answer":1},{"q":"Which of the following tissue types normally lacks the capacity to undergo hyperplasia in response to demand?","options":["Smooth muscle only","Cardiac and skeletal muscles","Epithelial tissue","Connective tissue proper"],"answer":1},{"q":"Myasthenia Gravis causes progressive muscular weakness through an autoimmune attack. What is the specific target of these circulating antibodies?","options":["Actin and myosin cross-bridges","Voltage-gated calcium channels","Acetylcholine receptors in the sarcolemma of the myoneural junction","Acetylcholinesterase enzyme in the synaptic cleft"],"answer":2},{"q":"The generation of the rhythmic beat of the heart is intrinsically controlled by modified nodal muscle cells referred to as:","options":["T-cells","B-cells","P-cells (pacemaker cells)","Satellite cells"],"answer":2},{"q":"In smooth muscle tissue, which branch of the nervous system is responsible for providing innervation and regulating involuntary movements like blood pressure and parturition?","options":["Somatic nervous system","Autonomic nervous system","Enteric nervous system exclusively","Central nervous system exclusively"],"answer":1},{"q":"During muscle contraction, which myofilaments are defined as the \"thin, light, and Isotropic (I)\" filaments?","options":["Myosin","Tropocollagen","Actin","Titin"],"answer":2},{"q":"According to the provided histology material, what type of regeneration is characteristic of cardiac muscle tissue following injury?","options":["Extensive proliferation of satellite cells","Intracellular regeneration","Complete cellular hyperplasia","Differentiation of persistent mesenchymal cells"],"answer":1}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>

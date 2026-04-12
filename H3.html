@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+    <script>
+        const quizData = [{"q":"Which of the following major embryonic germ layers is primarily responsible for forming muscle and connective tissue?","options":["Ectoderm","Mesoderm","Endoderm","Neuroectoderm"],"answer":1},{"q":"What is a defining characteristic of epithelial tissue regarding its blood supply?","options":["It is highly vascularized with numerous capillary beds","It is avascular, containing no blood vessels","It shares its blood supply directly with the underlying cartilage","It receives blood exclusively from large arteries passing through it"],"answer":1},{"q":"The simple squamous epithelium is functionally best suited for which of the following processes?","options":["Protection against severe mechanical abrasion","Vigorous propulsion of mucus by ciliary action","Allowing the passage of materials by diffusion and filtration","Active transport and large-scale secretion of enzymes"],"answer":2},{"q":"Which specific type of epithelial tissue is characteristically found lining the kidney tubules and the secretory portions of small glands?","options":["Simple squamous epithelium","Stratified cuboidal epithelium","Simple cuboidal epithelium","Transitional epithelium"],"answer":2},{"q":"In the human body, the ciliated variety of pseudostratified columnar epithelium is predominantly located in the:","options":["Lining of the stomach and intestines","Lining of the trachea and most of the upper respiratory tract","Excretory ducts of the pancreas","Epidermis of the skin"],"answer":1},{"q":"Which type of epithelial tissue forms the moist linings of the esophagus, mouth, and vagina?","options":["Non-keratinized stratified squamous epithelium","Keratinized stratified squamous epithelium","Stratified columnar epithelium","Simple columnar epithelium"],"answer":0},{"q":"Transitional epithelium is structurally uniquely adapted to perform which essential physiological function?","options":["Active secretion of digestive enzymes","Rapid exchange of respiratory gases","Stretching readily to permit distension of urinary organs","Providing a rigid framework for muscle attachment"],"answer":2},{"q":"How do endocrine glands structurally and functionally differ from exocrine glands?","options":["Endocrine glands secrete their products through highly branched ducts","Endocrine glands are ductless and secrete hormones directly into the surrounding fluid/blood","Endocrine glands only secrete sweat and sebaceous fluids","Endocrine glands are exclusively unicellular structures"],"answer":1},{"q":"In the classification of exocrine glands by structure, which of the following is considered a classic unicellular gland?","options":["Sweat gland","Pituitary gland","Adrenal gland","Goblet cell"],"answer":3},{"q":"Which lateral surface feature completely encircles an epithelial cell to form an adhesion belt and an impermeable junction?","options":["Desmosome","Gap junction","Tight junction","Hemidesmosome"],"answer":2},{"q":"Desmosomes are anchoring cell junctions that:","options":["Form open channels for the passage of ions between cells","Prevent the passage of molecules through the intercellular space","Contain linker proteins called cadherins and reduce the chance of tissue tearing","Are specifically designed to increase the absorptive surface area"],"answer":2},{"q":"What is the primary function of gap junctions located in the plasma membranes of adjacent cells?","options":["To prevent the physical separation of cells under tension","To provide a structural scaffolding for cell migration","To allow for direct communication between cells via trans-membrane connexon proteins","To secrete the basal lamina"],"answer":2},{"q":"Apical surface extensions of the plasma membrane that maximize the surface area for absorption in the small intestine are called:","options":["Cilia","Microvilli","Flagella","Basal folds"],"answer":1},{"q":"All classes of connective tissue share a common embryonic tissue of origin known as:","options":["Endoderm","Ectoderm","Mesenchyme","Neuroepithelium"],"answer":2},{"q":"Which connective tissue cells are commonly found along small blood vessels and can release histamine and heparin in response to injury?","options":["Macrophages","Fibroblasts","Osteoblasts","Mast cells"],"answer":3},{"q":"Among the protein fibers of the extracellular matrix, which type is composed of molecules that resemble coiled springs and can return to its original shape after being stretched?","options":["Collagen fibers","Elastic fibers","Reticular fibers","Sharpey's fibers"],"answer":1},{"q":"In the ground substance of connective tissue, which polysaccharide serves as a very slippery lubricant, especially common in joints?","options":["Keratin sulfate","Chondronectin","Hyaluronic acid","Fibronectin"],"answer":2},{"q":"Mucous connective tissue, containing a gelatinous substance called Wharton's jelly, is found exclusively in which location?","options":["The synovial fluid of joints","The intervertebral discs","The umbilical cord","The lamina propria of mucous membranes"],"answer":2},{"q":"Which type of connective tissue proper is described as having a gel-like matrix with all three fiber types, playing a critical role in wrapping and cushioning organs?","options":["Areolar connective tissue","Dense regular connective tissue","Reticular connective tissue","Elastic connective tissue"],"answer":0},{"q":"The internal soft skeleton (stroma) that supports other cell types in lymphoid organs like the spleen and lymph nodes is primarily composed of:","options":["Adipose tissue","Dense irregular connective tissue","Reticular connective tissue","Fibrocartilage"],"answer":2},{"q":"Dense regular connective tissue is perfectly suited to withstand great tensile stress pulled in one direction, making it the primary tissue type found in:","options":["The dermis of the skin","Tendons and most ligaments","The walls of large arteries","The articular surfaces of bones"],"answer":1},{"q":"Which connective tissue type is characterized by primarily irregularly arranged collagen fibers, allowing it to withstand tension exerted in many directions?","options":["Areolar tissue","Dense regular connective tissue","Dense irregular connective tissue","Reticular tissue"],"answer":2},{"q":"In the walls of large elastic arteries like the aorta, the prominent connective tissue present allows for recoil after stretching. This tissue is:","options":["Fibrocartilage","Dense regular connective tissue","Elastic connective tissue","Mucous connective tissue"],"answer":2},{"q":"Hyaline cartilage forms a firm but resilient matrix. Where is it typically NOT found in the adult human body?","options":["Costal cartilages of the ribs","Cartilages of the trachea and larynx","Covering the ends of long bones in joint cavities","The pinna of the external ear"],"answer":3},{"q":"Fibrocartilage possesses immense tensile strength and the ability to absorb compressive shock. It is the major component of which anatomical structure?","options":["The epiglottis","Intervertebral discs","The embryonic skeleton","The rings of the trachea"],"answer":1},{"q":"Which type of muscle tissue is characterized microscopically by branching, striated, generally uninucleate cells connected by intercalated discs?","options":["Skeletal muscle","Smooth muscle","Cardiac muscle","Visceral muscle"],"answer":2},{"q":"The smooth muscle tissue, which is under involuntary control, is predominantly located:","options":["Attached directly to the skeletal system","In the walls of the heart","In the walls of hollow organs","Forming the major mass of the tongue"],"answer":2},{"q":"In nervous tissue, which part of the neuron typically extends from the cell body and may be quite long to transmit electrical signals?","options":["The nucleus","The cell processes (axons/dendrites)","The supporting cells","The basement membrane"],"answer":1},{"q":"As tissues age, microscopic changes in collagen and elastin structure can lead to various clinical presentations, including:","options":["Increased flexibility of tendons","Rapid healing of injuries","Atherosclerosis and wrinkling of the skin","An increased rate of blood cell synthesis"],"answer":2},{"q":"In medical applications, what is the term used to describe the transformation of one mature epithelial tissue type into another, such as the change of ciliated pseudostratified epithelium to stratified squamous epithelium in the respiratory tract of smokers?","options":["Hyperplasia","Neoplasia","Metaplasia","Dysplasia"],"answer":2}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>
