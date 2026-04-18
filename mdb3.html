@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"q":"Approximately what percentage of cell mass is composed of water, acting as a solvent for biochemical reactions?","options":["50%","60%","70%","80%"],"answer":2},{"q":"Which of the following macromolecules is primarily responsible for storing and transmitting genetic information?","options":["Proteins","Lipids","Carbohydrates","Nucleic acids"],"answer":3},{"q":"Which combination of ions is mentioned as critical for nerve impulses, muscle contraction, and maintaining osmotic balance?","options":["Na+, K+, Ca2+, and Cl-","Fe2+, Mg2+, Zn2+, and Cu2+","PO4 3-, SO4 2-, HCO3-, and OH-","Li+, Be2+, B3+, and C4+"],"answer":0},{"q":"Calcium ions trigger muscle contraction primarily by interacting with which components in muscle fibres?","options":["Lipids","Proteins","Carbohydrates","Nucleic acids"],"answer":1},{"q":"Immune cells such as macrophages engulf pathogens primarily using which cellular organelle for defense?","options":["Ribosomes","Mitochondria","Lysosomes","Golgi apparatus"],"answer":2},{"q":"What is the specific cellular effect when insulin binds to receptors on muscle cells?","options":["It triggers calcium release.","It triggers glucose uptake.","It initiates ATP breakdown.","It stimulates cell division."],"answer":1},{"q":"Neurodegenerative diseases like Alzheimer's are chemically linked to which cellular malfunction?","options":["Uncontrolled cell growth due to DNA mutations","Abnormal protein folding and accumulation inside cells","Defects in cellular signaling and glucose metabolism","Increased rate of mitosis in neurons"],"answer":1},{"q":"Cancer arises from uncontrolled cell growth primarily due to:","options":["Abnormal protein folding","Increased glucose uptake","Mutations in DNA and failure of cell cycle regulation","Defective lysosomes failing to digest waste"],"answer":2},{"q":"In the context of medical significance, pharmacology primarily relies on targeting which cellular structures and pathways?","options":["Exclusively the nuclear DNA","Ion channels, receptors, and enzymes","The peptidoglycan cell wall","The bulk transport of water via osmosis"],"answer":1},{"q":"According to the comparison of cell organelles, what type of ribosomes are found in eukaryotes?","options":["50S","60S","70S","80S"],"answer":3},{"q":"Which of the following accurately describes the cell wall composition in prokaryotes compared to plants?","options":["Prokaryotes have a cellulose cell wall; plants have a peptidoglycan cell wall.","Prokaryotes have a peptidoglycan cell wall; plants have a cellulose cell wall.","Both have a peptidoglycan cell wall.","Neither have a true cell wall."],"answer":1},{"q":"Which of the following features is present in eukaryotic cells but completely absent in prokaryotic cells?","options":["Membrane-bound organelles","Cell membrane","Ribosomes","Cytoplasm"],"answer":0},{"q":"Mitosis occurs in somatic cells. Which of the following best defines somatic cells?","options":["Specialized cells solely responsible for immunity","All cells of the body except reproductive cells","Gametes such as sperm and eggs","Undifferentiated stem cells only"],"answer":1},{"q":"During which preparatory stage of the cell cycle is DNA replicated, resulting in each chromosome consisting of two identical sister chromatids?","options":["Prophase","Metaphase","Interphase","Anaphase"],"answer":2},{"q":"In which phase of mitosis do chromosomes condense, become visible, and the nuclear envelope begins to disintegrate?","options":["Prophase","Metaphase","Anaphase","Telophase"],"answer":0},{"q":"What ensures the equal distribution of genetic material during metaphase of mitosis?","options":["The replication of DNA","The alignment of chromosomes at the equatorial plane","The reformation of the nuclear envelope","The process of crossing over"],"answer":1},{"q":"What occurs during anaphase of mitosis?","options":["Sister chromatids are pulled apart toward opposite poles.","Homologous chromosomes pair up.","Chromosomes decondense back into chromatin.","The cytoplasm divides."],"answer":0},{"q":"What is the final outcome of cytokinesis following mitosis?","options":["Four unique haploid cells","Two genetically unique diploid cells","Two separate daughter cells that are diploid and genetically identical","One multinucleated cell"],"answer":2},{"q":"Unlike mitosis, meiosis produces which type of cells to be used for sexual reproduction?","options":["Identical diploid cells","Unique haploid cells","Identical haploid cells","Unique diploid cells"],"answer":1},{"q":"In which specific phase of meiosis does synapsis and crossing over occur?","options":["Prophase II","Metaphase I","Anaphase I","Prophase I"],"answer":3},{"q":"What is the genetic consequence of crossing over during meiosis?","options":["It maintains genetic stability.","It doubles the chromosome number.","It creates genetic variation.","It causes nondisjunction."],"answer":2},{"q":"During Anaphase I of meiosis, what is separated and pulled to opposite poles?","options":["Sister chromatids","Homologous chromosomes","Individual nucleotides","Ribosomes"],"answer":1},{"q":"Meiosis II closely resembles mitosis, but it occurs in which type of cells?","options":["Diploid cells","Polyploid cells","Haploid cells","Somatic cells"],"answer":2},{"q":"In humans, meiosis ensures that the sperm and egg each have how many chromosomes?","options":["46","23","92","22"],"answer":1},{"q":"According to the comparison table, which processes introduce genetic diversity in meiosis?","options":["DNA replication and transcription","Independent assortment and crossing over","Cytokinesis and telophase","Condensation and decondensation of chromatin"],"answer":1},{"q":"What is the clinical example given for the purpose of mitosis in the body?","options":["Formation of gametes","Ensuring correct chromosome number in offspring","Healing of wounds and replacement of worn-out cells","Increasing genetic diversity"],"answer":2},{"q":"How do chemotherapy drugs commonly exploit the mechanism of cancer?","options":["By replacing defective enzymes","By targeting rapidly dividing cells","By inducing crossing over","By enhancing the formation of a rigid cell wall"],"answer":1},{"q":"Down syndrome is caused by a nondisjunction error in meiosis resulting in which chromosomal abnormality?","options":["Missing X chromosome (XO)","Extra X chromosome in males (XXY)","Extra copy of chromosome 21 (trisomy 21)","Missing chromosome 21"],"answer":2},{"q":"Turner syndrome, a chromosomal abnormality arising from meiotic error, is characterized by which of the following?","options":["Trisomy 21","Extra X chromosome in males (XXY)","Missing X chromosome (XO)","Extra Y chromosome in males (XYY)"],"answer":2},{"q":"Which chromosomal abnormality corresponds to Klinefelter syndrome?","options":["Missing X chromosome (XO)","Extra X chromosome in males (XXY)","Extra copy of chromosome 21","Deletion of chromosome 5"],"answer":1}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>

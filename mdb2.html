@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"q":"Which of the following elements primarily form the backbone of biomolecules necessary to sustain life?","options":["Carbon, hydrogen, oxygen, nitrogen, phosphorus, and sulfur","Carbon, helium, oxygen, sodium, phosphorus, and iron","Calcium, hydrogen, oxygen, nitrogen, potassium, and sulfur","Carbon, hydrogen, oxygen, zinc, phosphorus, and magnesium"],"answer":0},{"q":"In biomolecules, what type of chemical bonds provide structural stability, such as the peptide bonds found in proteins?","options":["Hydrogen bonds","Van der Waals forces","Covalent bonds","Hydrophobic interactions"],"answer":2},{"q":"According to thermodynamic principles in bioenergetics, what determines the spontaneity of metabolic reactions?","options":["The activation energy barrier","Free Energy (\\Delta G)","The polarity of the solvent","The concentration of biological buffers"],"answer":1},{"q":"How do biological systems maintain order and balance entropy according to the laws of thermodynamics?","options":["By constantly expending energy","By eliminating water from the cytoplasm","By converting all ATP into glucose","By stopping all molecular movement"],"answer":0},{"q":"Which of the following is specifically mentioned as a buffer used in the blood to maintain homeostasis and prevent harmful pH fluctuations?","options":["Ammonia","Phosphate","Bicarbonate","Acetate"],"answer":2},{"q":"What property of water makes it the universal solvent in biological systems?","options":["Its low heat capacity","Its polarity","Its high molecular weight","Its ability to exist as a gas at room temperature"],"answer":1},{"q":"What phenomenon drives the assembly of cell membranes and the folding of proteins by minimizing the exposure of nonpolar groups to water?","options":["Hydrogen bonding","The hydrophobic effect","Glycosidic bonding","Acid-base ionization"],"answer":1},{"q":"The stability of nucleic acids like DNA and RNA relies primarily on which of the following chemical interactions?","options":["Glycosidic bonds and peptide linkages","Ionic bonds and disulfide bridges","Hydrogen bonding and base stacking","Hydrophobic interactions and lipid bilayers"],"answer":2},{"q":"Carbohydrates are formed by which specific type of chemical bonds?","options":["Peptide bonds","Phosphodiester bonds","Glycosidic bonds","Hydrogen bonds"],"answer":2},{"q":"What specific nature of lipids drives the formation of membranes and allows them to function in signalling?","options":["Their purely hydrophilic nature","Their amphipathic nature","Their high enzymatic activity","Their crystalline lattice structure"],"answer":1},{"q":"How do enzymes speed up biochemical reactions without altering the reaction's equilibrium?","options":["By increasing the temperature of the cell","By increasing the free energy (\\Delta G)","By permanently binding to the product","By lowering the activation energy"],"answer":3},{"q":"Enzyme specificity, which ensures precision in biochemical reactions, is maintained by chemical complementarity between the enzyme's active site and which entity?","options":["The cell membrane","Substrates","Allosteric inhibitors","ATP molecules"],"answer":1},{"q":"In redox chemistry, which molecules act as electron carriers shuttling electrons to link chemical energy to ATP synthesis?","options":["NAD^{+}/NADH, FAD/FADH_{2}, and cytochromes","DNA and RNA","Bicarbonate and phosphate buffers","Actin and myosin filaments"],"answer":0},{"q":"At a clinical level, metabolic disorders such as phenylketonuria are primarily caused by?","options":["Acid-base imbalances","Oxidative stress","Enzyme defects","Viral infections"],"answer":2},{"q":"Cells are enclosed by a cell membrane, which is best described as?","options":["A rigid peptidoglycan wall","A dynamic lipid bilayer","A solid protein capsule","A pure cholesterol shell"],"answer":1},{"q":"According to Table 1.1, what is the typical size range of a eukaryotic cell?","options":["1 to 10~\\mu m","10 to 100~\\mu m or more","0.1 to 1~\\mu m","100 to 1000~\\mu m"],"answer":1},{"q":"Which of the following is true regarding the nuclear region of a prokaryotic cell?","options":["It contains a well-defined nucleus with a perinuclear membrane.","It has no well-defined nucleus, only a nuclear zone with DNA.","It houses multiple nucleoli rich in RNA.","It is completely devoid of any genetic material."],"answer":1},{"q":"Since mitochondria are absent in prokaryotic cells, where are the enzymes of energy metabolism located?","options":["Floating freely in the cytoplasm","Inside the Golgi apparatus","Bound to the membrane","Inside the lysosomes"],"answer":2},{"q":"In eukaryotic cells, how does cell division typically occur?","options":["By binary fission","By budding","By mitosis","By conjugation"],"answer":2},{"q":"What is the function of the pores located on the nuclear envelope?","options":["To allow RNA and proteins to move in and out","To synthesize new DNA strands","To generate ATP for the nucleus","To digest cellular waste"],"answer":0},{"q":"In liver cells, what is the specific vital role played by the smooth endoplasmic reticulum (ER)?","options":["Synthesizing ribosomal RNA","Generating ATP","Detoxifying drugs and alcohol","Digesting foreign material"],"answer":2},{"q":"Which cell organelle is responsible for modifying, packaging, and distributing proteins and lipids?","options":["Mitochondria","Nucleolus","Golgi apparatus","Peroxisomes"],"answer":2},{"q":"What is the primary function of peroxisomes within a eukaryotic cell?","options":["Breaking down fatty acids and neutralizing toxins","Housing the cell's DNA","Synthesizing polypeptides","Providing structural shape to the cell"],"answer":0},{"q":"Which cellular component is a network of microtubules and filaments that provides shape, facilitates movement, and organizes organelles?","options":["Rough ER","Cytoskeleton","Plasma membrane","Glycocalyx"],"answer":1},{"q":"In the structure of the cell membrane, how are the phospholipid layers oriented?","options":["Hydrophobic heads facing outward, hydrophilic tails facing inward","Hydrophilic heads facing outward, hydrophobic tails facing inward","Both heads and tails facing outward randomly","Hydrophilic tails facing outward, hydrophobic heads facing inward"],"answer":1},{"q":"What is the difference between integral and peripheral proteins in the cell membrane?","options":["Integral proteins are attached to the surface; peripheral proteins penetrate the bilayer.","Integral proteins penetrate the bilayer; peripheral proteins are attached to the surface.","Both penetrate the bilayer, but only peripheral proteins act as channels.","Both are attached to the surface, but only integral proteins provide structural support."],"answer":1},{"q":"Carbohydrates attached to proteins or lipids in the cell membrane form a structure that aids in cell recognition and communication. What is this structure called?","options":["Cytoskeleton","Peptidoglycan","Glycocalyx","Nucleoid"],"answer":2},{"q":"What role does cholesterol play when interspersed within the phospholipid bilayer of the cell membrane?","options":["It acts as a primary energy source.","It maintains fluidity and stability.","It serves as a receptor for hormone signals.","It synthesizes new lipid molecules."],"answer":1},{"q":"Who proposed the Fluid Mosaic Model of the cell membrane in 1972?","options":["Watson and Crick","Avery, MacLeod, and McCarty","Singer and Nicolson","Kendrew and Perutz"],"answer":2},{"q":"The cell membrane facilitates both passive and active transport. Which form of transport explicitly requires the use of energy?","options":["Diffusion","Osmosis","Active transport","Facilitated diffusion"],"answer":2}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>
