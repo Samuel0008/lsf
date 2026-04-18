@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"q":"Which of the following best describes the focus of biochemistry in medicine?","options":["The study of gross anatomical structures of the human body","The study of chemical reactions, structure, function, and interactions of biological molecules","The physical diagnosis of psychological conditions","The macroscopic study of plant physiology"],"answer":1},{"q":"Who coined the term \"Biochemistry\" in the year 1930?","options":["Anselme Payen","Friedrich Wöhler","Carl Neuberg","Eduard Buchner"],"answer":2},{"q":"What significant contribution did Friedrich Wöhler make to biochemistry in 1828?","options":["He discovered the first enzyme, diastase.","He synthesized urea, demonstrating that organic compounds could be made artificially.","He crystallized the enzyme urease.","He completed the Human Genome Project."],"answer":1},{"q":"Which scientist crystallized the enzyme urease in 1926, proving that enzymes are proteins?","options":["James Sumner","Eduard Buchner","James Watson","John C. Kendrew"],"answer":0},{"q":"The research of which scientist in 1897 led to the identification of enzymes as catalysts for biological reactions, leading to the modified lock-and-key theory?","options":["Carl Neuberg","Eduard Buchner","Emil Fischer","Oswald Avery"],"answer":1},{"q":"In the 1950s and 1960s, scientists led by John C. Kendrew and Max Perutz achieved which major milestone in structural biology?","options":["They proposed the Central Dogma of molecular biology.","They explained the first protein structures.","They sequenced the first human genome.","They isolated the first nucleic acids from bacteria."],"answer":1},{"q":"Emil Fischer studied the catalytic effect of yeast enzymes on the hydrolysis of which specific compound?","options":["Urea","Glucose","Sucrose","Lactose"],"answer":2},{"q":"In 1944, Oswald Avery and colleagues extracted DNA from a toxic strain of which bacterium to provide conclusive evidence that DNA is the genetic material?","options":["Escherichia coli","Staphylococcus aureus","Streptococcus pneumoniae","Bacillus subtilis"],"answer":2},{"q":"According to the Central Dogma of molecular biology predicted by Francis Crick in 1958, the flow of information from nucleic acid to protein is:","options":["Reversible and bi-directional","Dependent on lipid synthesis","Irreversible and one-way","Identical in both eukaryotes and inorganic matter"],"answer":2},{"q":"In the field of environmental science, biochemistry is primarily applied for which of the following purposes?","options":["DNA fingerprinting","Vaccine development","Bioremediation and pollution control using microbes","Designing pest-resistant plants"],"answer":2},{"q":"Which field utilizes biochemistry primarily for DNA fingerprinting and toxicology?","options":["Pharmaceuticals","Forensic Science","Agriculture","Nutrition"],"answer":1},{"q":"Which of the following is considered a broad branch of modern biochemistry?","options":["Macroscopic anatomy","Clinical Biochemistry","Classical mechanics","Geomorphology"],"answer":1},{"q":"How does biochemistry aid in disease diagnosis?","options":["By identifying biomarkers such as proteins, enzymes, and metabolites used in blood tests.","By utilizing strictly surgical interventions.","By altering the genetic makeup of the patient immediately.","By purely studying external symptoms without laboratory tests."],"answer":0},{"q":"The study of biochemical pathways involved in conditions like diabetes, obesity, and cardiovascular diseases falls under which role of biochemistry?","options":["Enzyme Function","Agricultural Research","Understanding Metabolic Disorders","Forensic Science"],"answer":2},{"q":"Which concept utilizes biochemical profiling to tailor treatments based on individual genetic and metabolic differences?","options":["Empirical Therapy","Personalized Medicine","Palliative Care","Traditional Herbalism"],"answer":1},{"q":"Which of the following is identified as a high-cost advanced technique presenting a challenge in biochemical research?","options":["Simple light microscopy","Cryo-electron microscopy","Paper chromatography","Basic distillation"],"answer":1},{"q":"Which branch of biochemistry is often considered the 'root of biochemistry'?","options":["Clinical Biochemistry","Cell Biology","Genetics","Molecular Biology"],"answer":3},{"q":"The cell biology branch of biochemistry, which deals with the structure and functions of cells, is also called:","options":["Cytology","Histology","Pathology","Enzymology"],"answer":0},{"q":"Which specific branch involves the application of biochemical techniques to diagnose and monitor diseases?","options":["Molecular Biochemistry","Agricultural Biochemistry","Clinical Biochemistry","Genetic Engineering"],"answer":2},{"q":"In disease diagnosis, a Kidney Function Test specifically evaluates kidney function by measuring the levels of:","options":["Glucose and insulin","Creatinine and urea","Cholesterol and triglycerides","Transaminases and bilirubin"],"answer":1},{"q":"A Lipid Profile Test is primarily used to assess the risk of which type of condition?","options":["Renal failure","Neurological disorders","Heart disease","Pulmonary fibrosis"],"answer":2},{"q":"Phenylketonuria (PKU) is a genetic disorder characterized by the body's inability to break down which specific amino acid?","options":["Tyrosine","Tryptophan","Phenylalanine","Valine"],"answer":2},{"q":"Diabetes Mellitus is primarily defined as a disorder of glucose metabolism due to:","options":["Phenylalanine accumulation","Insulin deficiency or resistance","Abnormal thyroid hormone production","Overproduction of lactase"],"answer":1},{"q":"How do antiviral drugs generally function to help in diseases like HIV and COVID-19?","options":["They target bacterial biochemical processes.","They halt tumor growth directly.","They block viral replication.","They replace missing enzymes in the host."],"answer":2},{"q":"Cancer drugs developed through biochemical research primarily aim to target:","options":["Bacterial cell walls","Cancer cell metabolism and halt tumour growth","Thyroid hormone production","The replication cycle of retroviruses"],"answer":1},{"q":"Enzyme Replacement Therapy (ERT) is a medical treatment primarily used for which of the following diseases?","options":["Diabetes mellitus","Gaucher's disease and Pompe disease","Hypertension and atherosclerosis","COVID-19 and Influenza"],"answer":1},{"q":"What is the primary purpose of an Enzyme-Linked Immunosorbent Assay (ELISA) in a clinical setting?","options":["To replace defective enzymes in genetic disorders","To detect infections like HIV and hepatitis","To help lactose-intolerant individuals digest dairy","To measure creatinine levels in the blood"],"answer":1},{"q":"Which revolutionary technology is used for treating genetic disorders by modifying DNA sequences?","options":["Nanomedicine","Enzyme-Linked Immunosorbent Assay","CRISPR Gene Editing","Synthetic Biology"],"answer":2},{"q":"What is the focus of \"Synthetic Biology\" in the context of the future of medical biochemistry?","options":["Modifying existing human DNA sequences using CRISPR.","Engineering artificial biochemical systems for medical applications.","Using nanoparticles exclusively for targeted drug delivery.","Developing traditional vaccines using weakened pathogens."],"answer":1},{"q":"Which of the following accurately describes the difference between molecular biology and cell biology as core branches of biochemistry?","options":["Molecular biology studies organisms at a macroscopic level, while cell biology focuses strictly on extracellular fluids.","Molecular biology analyses processes at a molecular level, whereas cell biology deals with the structure and functions of cells.","Molecular biology is also called cytology, whereas cell biology is the root of biochemistry.","Molecular biology focuses on clinical diagnostics, while cell biology focuses on agricultural applications."],"answer":1}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>
