@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"q":"Which of the following principal events characterizes the third week of development to mature the embryo into three layers?","options":["Fertilization","Neurulation","Cleavage","Implantation"],"answer":1},{"q":"What marks the commencement of gastrulation in a developing embryo?","options":["Formation of the neural tube","Formation of the notochord","Formation of the primitive streak","Closure of the neuropores"],"answer":2},{"q":"Towards which end of the embryo does the epiblast become thickened to form the primitive streak?","options":["Cranial end","Caudal end","Lateral end","Ventral end"],"answer":1},{"q":"Which structure is also known as Hensen's node?","options":["Primitive streak","Primitive pit","Primitive node","Primitive groove"],"answer":2},{"q":"During gastrulation, the first set of epiblast cells that ingress and replace the hypoblast layer form the:","options":["Definitive Endoderm","Intraembryonic Mesoderm","Ectoderm","Extraembryonic Mesoderm"],"answer":0},{"q":"Which of the following germ layers is the ultimate source of all tissues and organs in the embryo?","options":["Hypoblast","Epiblast","Endoderm","Extraembryonic mesoderm"],"answer":1},{"q":"Intraembryonic mesoderm is formed during which week of development?","options":["First week","Second week","Third week","Fourth week"],"answer":2},{"q":"The segment of the mesoderm that forms the notochord is correctly referred to as the:","options":["Paraxial mesoderm","Axial mesoderm","Intermediate mesoderm","Lateral plate mesoderm"],"answer":1},{"q":"The central solid rod of mesodermal cells extending cranially from the primitive node reaches which structure?","options":["Cloacal plate","Neural crest","Somites","Prechordal plate"],"answer":3},{"q":"The temporary channel that connects the amniotic cavity above and the yolk sac below is called the:","options":["Notochordal canal","Neural groove","Neurenteric canal","Primitive pit"],"answer":2},{"q":"Which part of the canalized primitive notochord remains intact to form the notochordal plate?","options":["The floor","The roof","The lateral walls","The primitive pit"],"answer":1},{"q":"In the trilaminar embryo, where do the ectoderm and endoderm lie directly opposed to each other without a separating mesoderm?","options":["At the primitive node and prechordal plate","At the prechordal plate and cloacal plate","At the neural tube and notochord","Along the entire primitive streak"],"answer":1},{"q":"Paraxial mesoderm, which lies on either side of the notochord, forms which of the following structures craniocaudally?","options":["Notochord","Gut tube","Somites","Neural crest"],"answer":2},{"q":"The lateral plate mesoderm is divided into which two parts?","options":["Axial and paraxial mesoderm","Somatic and splanchnic mesoderm","Intermediate and somatopleuric mesoderm","Epiblast and hypoblast"],"answer":1},{"q":"Neurulation begins with the thickening of the ectoderm under the inductive influence of the:","options":["Primitive streak","Notochordal area","Cloacal membrane","Yolk sac"],"answer":1},{"q":"Cells at the edges of the lateral side of the neural plate detach themselves to form the:","options":["Neural tube","Somites","Neural crest","Neurenteric canal"],"answer":2},{"q":"During the formation of the neural tube, the fusion of the neural folds begins in which region of the embryo?","options":["Caudal region","Head region","Tail region","Ventral region"],"answer":1},{"q":"The cranial (anterior) neuropore closes on which day of development?","options":["Day 21","Day 25","Day 27","Day 30"],"answer":1},{"q":"The caudal (posterior) neuropore normally closes on which day?","options":["Day 23","Day 25","Day 27","Day 29"],"answer":2},{"q":"Which of the following is NOT a derivative of the ectoderm?","options":["Neural tube","Neural crest cells","Surface ectoderm","Notochord"],"answer":3},{"q":"The primitive gut tube (foregut, midgut, and hindgut) is a derivative of which germ layer?","options":["Ectoderm","Mesoderm","Endoderm","Epiblast"],"answer":2},{"q":"What clinical condition arises if the primitive streak persists past the end of the fourth week?","options":["Spina bifida","Sacrococcygeal teratoma","Mermaid syndrome","Sirenomelia"],"answer":1},{"q":"A sacrococcygeal teratoma is characterized as a multi-lineage tumor because it contains derivatives from:","options":["Ectoderm only","Ectoderm and mesoderm only","Ectoderm, mesoderm, and endoderm","Mesoderm and endoderm only"],"answer":2},{"q":"Mermaid syndrome (sirenomelia) is a rare congenital anomaly caused by:","options":["Excessive gastrulation","Failure of the neural tube to close","Insufficient gastrulation","Persistence of the primitive streak"],"answer":2},{"q":"The intermediate mesoderm is situated between which two mesodermal segments?","options":["Axial and paraxial mesoderm","Somites (paraxial) and lateral plate mesoderm","Somatic and splanchnic mesoderm","Ectoderm and endoderm"],"answer":1},{"q":"Which structure is characterized as a highly dividing multipotent structure that wanders to form the trilaminar embryo?","options":["Hypoblast","Neural tube","Primitive streak","Prechordal plate"],"answer":2},{"q":"What occurs to the floor of the notochordal canal during notochord formation?","options":["It thickens to form the notochordal plate.","It breaks down to leave the neurenteric canal.","It fuses with the ectoderm.","It differentiates into the primitive gut tube."],"answer":1},{"q":"The largest proportion of immigrating cells from the primitive streak forms which definitive layer?","options":["Intraembryonic Mesoderm","Ectoderm","Endoderm","Epiblast"],"answer":0},{"q":"By the end of the third week of life, the embryo matures into three layers and takes on what general body form?","options":["A spherical mass","A rounded trilaminar body form","A flat bilaminar disc","A hollow blastocyst"],"answer":1},{"q":"Which part of the primitive streak contains the blastopore?","options":["The primitive groove","The primitive pit","The cloacal membrane","The notochordal process"],"answer":1}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>
