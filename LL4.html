@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (29 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 29 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"q":"Where exactly is the flexor compartment of the thigh located?","options":["Between the anterior and medial intermuscular septa","Anterior aspect of the thigh","Posterior aspect of the thigh between the posterior and lateral intermuscular septa","Medial aspect of the thigh near the adductor magnus"],"answer":2},{"q":"The muscles of the posterior compartment of the thigh serve what primary function at the hip joint?","options":["Flexion","Adduction","Extension","Medial rotation"],"answer":2},{"q":"Which of the following muscles is NOT considered part of the hamstrings?","options":["Semitendinosus","Rectus femoris","Semimembranosus","Biceps femoris"],"answer":1},{"q":"Which nerve is responsible for supplying the skin of the posterior thigh?","options":["Sciatic nerve","Posterior cutaneous nerve of the thigh","Tibial nerve","Common peroneal nerve"],"answer":1},{"q":"What is the structural composition of the lower 1/3 of the semitendinosus muscle?","options":["Spindle-shaped belly","Aponeurotic sheet","Long round tendon","Flat muscular fibers"],"answer":2},{"q":"In terms of depth, how is the semitendinosus positioned relative to the semimembranosus?","options":["It lies deep to it","It lies superficial to it","It lies lateral to it","It lies medial to it"],"answer":1},{"q":"What is the distal attachment site for the semitendinosus muscle?","options":["Head of the fibula","Lateral tibial condyle","Medial surface of the tibia","Posterior aspect of the medial epicondyle"],"answer":2},{"q":"Which muscle is described as having an \"aponeurotic nature\" in its proximal attachment?","options":["Biceps femoris","Semitendinosus","Semimembranosus","Gastrocnemius"],"answer":2},{"q":"Which nerve innervates the semimembranosus muscle?","options":["Common fibular branch of the sciatic nerve","Tibial branch of the sciatic nerve","Obturator nerve","Femoral nerve"],"answer":1},{"q":"Where is the biceps femoris muscle specifically located within the posterior compartment?","options":["Medial aspect","Anterior aspect","Lateral aspect","Central aspect"],"answer":2},{"q":"The short head of the biceps femoris originates from which structure?","options":["Ischial tuberosity","Linea aspera of the femur","Medial epicondyle","Tibial tuberosity"],"answer":1},{"q":"Which nerve accompanies the biceps femoris on its medial aspect?","options":["Tibial nerve","Posterior cutaneous nerve","Common fibular (peroneal) nerve","Saphenous nerve"],"answer":2},{"q":"What is the action of the biceps femoris when the leg is semi-flexed?","options":["Medial rotation of the leg","Lateral rotation of the leg","Adduction of the leg","Extension of the knee"],"answer":1},{"q":"In a cross-section of the thigh, which muscle group is positioned medially?","options":["Anterior Extensor Muscles","Posterior Hamstring Muscles","Medial Adductor Muscles","Lateral Abductor Muscles"],"answer":2},{"q":"What are the spinal nerve roots for the sciatic nerve?","options":["L1, 2, 3, 4","L4, 5, S1, 2, 3","S1, 2, 3, 4","L2, 3, 4, S1"],"answer":1},{"q":"The sciatic nerve descends on the posterior surface of which muscle?","options":["Biceps femoris","Adductor magnus","Semimembranosus","Pectineus"],"answer":1},{"q":"Which structure separates the sciatic nerve from the posterior cutaneous nerve of the thigh?","options":["Semitendinosus muscle","Long head of the biceps femoris","Short head of the biceps femoris","Adductor longus"],"answer":1},{"q":"Which part of the hamstring group is innervated by the common fibular (peroneal) branch?","options":["Semitendinosus","Semimembranosus","Long head of biceps femoris","Short head of biceps femoris"],"answer":3},{"q":"Between the two terminal branches of the sciatic nerve, which is the larger one?","options":["Common peroneal nerve","Tibial nerve","Sural nerve","Deep fibular nerve"],"answer":1},{"q":"Where might the sciatic nerve divide into its terminal branches?","options":["Only at the popliteal fossa","Only in the mid-thigh","High up in the thigh or even in the pelvic cavity","Only at the level of the ankle"],"answer":2},{"q":"What bony landmark forms the floor of the popliteal fossa?","options":["Tibial plateau","Popliteal surface of the femur","Head of the fibula","Patella"],"answer":1},{"q":"Which muscles form the superior boundaries of the popliteal fossa?","options":["Gastrocnemius and Plantaris","Semimembranosus and semitendinosus","Biceps femoris and Vastus lateralis","Sartorius and Gracilis"],"answer":1},{"q":"What are the primary contents of the popliteal fossa arranged from superficial to deep?","options":["Artery, Vein, Nerve","Nerve, Artery, Vein","Tibial nerve, Popliteal vein, Popliteal artery","Popliteal artery, Popliteal vein, Tibial nerve"],"answer":2},{"q":"Which artery is the source of the descending genicular artery?","options":["Popliteal artery","Femoral artery","Tibial artery","Profunda femoris"],"answer":1},{"q":"Which branch of the popliteal artery is NOT involved in the genicular anastomosis?","options":["Middle genicular","Medial superior genicular","Lateral inferior genicular","Deep femoral genicular"],"answer":3},{"q":"What is a clinical consequence of hamstring contractures?","options":["Hyperextension of the knee","Disabling flexion of the knee","Inability to adduct the thigh","Foot drop"],"answer":1},{"q":"Which nerve is most at risk of injury during surgery involving the hamstrings?","options":["Tibial nerve","Common peroneal nerve","Obturator nerve","Femoral nerve"],"answer":1},{"q":"An avulsion of the ischial tuberosity is most likely to occur during which movement?","options":["Knee flexion with hip extension","Hip flexion with knee extension (e.g., kicking hard)","Hip abduction with knee flexion","Lateral rotation of the hip"],"answer":1},{"q":"What inflammatory condition is noted as being very common in the lower limb?","options":["Tendonitis","Myositis","Bursitis","Osteitis"],"answer":2}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>
