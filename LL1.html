@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"q":"What is the primary functional specialization of the upper limb compared to the lower limb?","options":["Stability and support","Weight-bearing and propulsion","Apprehension and greater mobility","Medial rotation and extension"],"answer":2},{"q":"During early development, the lower limb bud rotates in which direction and by how many degrees?","options":["Laterally through 90°","Medially through 90°","Laterally through 180°","Medially through 45°"],"answer":1},{"q":"Which specific muscle group is identified as the major muscles for propulsion in humans?","options":["Quadriceps femoris","Hamstrings","Gluteal muscles","Adductor muscles"],"answer":2},{"q":"After embryonic rotation, where does the extensor compartment of the lower limb face?","options":["Posteriorly","Medially","Laterally","Anteriorly"],"answer":3},{"q":"Which structure forms the lateral boundary of the femoral triangle?","options":["Medial border of Adductor longus","Lateral border of Sartorius","Medial border of Sartorius","Inguinal ligament"],"answer":2},{"q":"The base of the femoral triangle is formed by which of the following?","options":["Pectineus muscle","Inguinal ligament","Fascia lata","Sartorius muscle"],"answer":1},{"q":"Which of these muscles is NOT part of the floor of the femoral triangle?","options":["Iliacus","Pectineus","Rectus femoris","Adductor longus"],"answer":2},{"q":"What structure pierces the fascia lata at the saphenous opening in the roof of the femoral triangle?","options":["Femoral artery","Femoral nerve","Great saphenous vein","Deep inguinal lymph nodes"],"answer":2},{"q":"The femoral sheath is formed by the downward extension of which two fascial layers?","options":["Fascia lata and Scarpa’s fascia","Fascia transversalis and fascia iliacus","Fascia cribrosa and deep fascia","Pertoineum and extraperitoneal fascia"],"answer":1},{"q":"In the femoral sheath, which structure occupies the middle compartment?","options":["Femoral artery","Femoral nerve","Femoral canal","Femoral vein"],"answer":3},{"q":"What are the physical dimensions of the femoral canal at its widest part?","options":["3 cm long and 3 cm wide","1.5 cm long and 1.5 cm wide","4 cm long and 1 cm wide","0.5 cm long and 2.5 cm wide"],"answer":1},{"q":"The femoral ring is bounded medially by which structure?","options":["Femoral vein","Inguinal ligament","Lacunar ligament","Pectineus muscle"],"answer":2},{"q":"What are the specific contents of the femoral canal?","options":["Femoral nerve and artery","Cloquet lymph nodes and areolar tissue","Great saphenous vein and superficial nodes","Obturator nerve and fat"],"answer":1},{"q":"Why are femoral hernias more common in females?","options":["The femoral artery is larger in females","The pelvis is larger, resulting in a larger femoral ring","The inguinal ligament is weaker in females","The lacunar ligament is absent in females"],"answer":1},{"q":"During the protrusion of a femoral hernia, what is the final direction of the sac after it emerges from the saphenous opening?","options":["Downwards towards the knee","Medially towards the scrotum/labia","Upwards along the superficial epigastric vessels","Posteriorly into the adductor canal"],"answer":2},{"q":"To relieve an obstructed femoral hernia, which structure is usually surgically cut?","options":["Inguinal ligament","Sartorius muscle","Lacunar ligament","Fascia transversalis"],"answer":2},{"q":"The abnormal obturator artery is formed by an anastomosis between the pubic branch of the obturator artery and the pubic branch of the:","options":["Internal iliac artery","Femoral artery","Inferior epigastric artery","Deep circumflex iliac artery"],"answer":2},{"q":"Where is the adductor canal anatomically located?","options":["Proximal 1/3 of the anterior thigh","Medial side of the middle 1/3 of the thigh","Distal 1/3 of the posterior thigh","Lateral side of the upper thigh"],"answer":1},{"q":"Which muscle forms the anterior boundary of the adductor canal?","options":["Adductor longus","Sartorius","Vastus medialis","Adductor magnus"],"answer":2},{"q":"Historically, the adductor canal was used as a surgical site for the ligation of which vessel?","options":["Popliteal artery","Femoral artery","Great saphenous vein","Profunda femoris artery"],"answer":1},{"q":"Which structure forms the roof (medial wall) of the adductor canal?","options":["Fascia lata","Adductor magnus tendon","Fibrous membranous sheath under the sartorius","Inguinal ligament"],"answer":2},{"q":"Within the adductor canal, what is the spatial relationship of the femoral artery to the femoral vein?","options":["The artery is posterior to the vein","The artery is lateral to the vein","The artery is anterior to the vein","The artery is medial to the vein"],"answer":2},{"q":"Which nerve crosses the femoral artery anteriorly within the adductor canal?","options":["Nerve to vastus medialis","Saphenous nerve","Obturator nerve","Lateral cutaneous nerve of thigh"],"answer":1},{"q":"The apex of the femoral triangle is formed by the intersection of which two muscles?","options":["Sartorius and Adductor magnus","Sartorius and Adductor longus","Pectineus and Adductor longus","Iliacus and Psoas"],"answer":1},{"q":"What is the total number of branches given off by the femoral artery within the femoral triangle?","options":["3","4","6","8"],"answer":2},{"q":"The femoral sheath encloses approximately how many centimeters of the femoral vessels?","options":["1-2 cm","3-4 cm","6-8 cm","10 cm"],"answer":1},{"q":"Which nerve is a content of the femoral triangle but is NOT enclosed in the femoral sheath?","options":["Femoral branch of genitofemoral nerve","Femoral nerve","Nerve to pectineus","Saphenous nerve"],"answer":1},{"q":"The adductor canal extends distally to which anatomical landmark?","options":["The base of the patella","The tendinous opening in the adductor magnus","The tibial tuberosity","The apex of the femoral triangle"],"answer":1},{"q":"Which of the following is a tributary received by the femoral vein within the triangle?","options":["Popliteal vein","Great saphenous vein","Inferior epigastric vein","Internal iliac vein"],"answer":1},{"q":"In the upper limb, where does the preaxial (radial) border face after the 90° developmental rotation?","options":["Medially","Laterally","Anteriorly","Posteriorly"],"answer":1}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>
