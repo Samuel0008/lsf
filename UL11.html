@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>LSF - Rapid MCQ</title>
+    <style>
+            :root { --bg-color: #050505; --box-bg: #0a244a; --box-hover: #0e356b; --text-color: #e0e6ed; --accent: #4fa8fb; --danger: #ff4a4a; --success: #4aff80; }
+            body { background: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+            #app { width: 100%; max-width: 800px; padding: 2rem; }
+            .box { background: var(--box-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1a3c6b; }
+            button { background: var(--bg-color); color: var(--accent); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+            button:hover { background: var(--accent); color: var(--bg-color); }
+            input[type="text"] { background: #031021; border: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 6px; width: calc(100% - 24px); margin-bottom: 15px;}
+            .header-info { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; }
+            .trophy-container { position: relative; display: inline-block; text-align: center; margin-top: 20px;}
+            .trophy-container img { max-width: 250px; border-radius: 12px; }
+            .trophy-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px; cursor: pointer; user-select: none;}
+            .hidden-score { opacity: 0; }
+            .review-item { padding: 10px; border-left: 4px solid #444; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+            .review-item.correct { border-left-color: var(--success); }
+            .review-item.incorrect { border-left-color: var(--danger); }
+        
+        .option { display: block; padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+        .option:hover { background: rgba(255,255,255,0.1); }
+        .option input { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="box text-center">
+            <h1>Rapid MCQ (30 Questions)</h1>
+            <input type="text" id="student-name" placeholder="Enter your name (Optional)">
+            <button onclick="startQuiz()">Start Quiz (10 Mins)</button>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="header-info">
+                <span id="timer">10:00</span>
+                <span id="progress">0 / 30 Answered</span>
+            </div>
+            <div id="q-container"></div>
+            <button onclick="submitQuiz()" style="width: 100%; margin-top: 20px;">Submit Quiz Now</button>
+        </div>
+
+        <div id="result-screen" class="box" style="display:none; text-align: center;">
+            <h1 id="result-title"></h1>
+            <p id="result-name"></p>
+            <div class="trophy-container">
+                <img src="trophy.png" alt="Trophy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGEyNDRhIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="trophy-score" id="trophy-score" onclick="this.classList.toggle('hidden-score')" title="Click to hide/show score">100%</div>
+            </div>
+            <p><small>(Click the score on the image to hide/show it for screenshots!)</small></p>
+            <h3 style="margin-top: 30px; text-align: left;">Review:</h3>
+            <div id="review-container" style="text-align: left;"></div>
+            <button onclick="restartQuiz()" style="margin-top: 20px;">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [{"q":"Which two major articulations facilitate wrist movement to optimally position the hand?","options":["The radioulnar and humeroradial joints","The radiocarpal and midcarpal joints","The carpometacarpal and metacarpophalangeal joints","The ulnocarpal and distal radioulnar joints"],"answer":1},{"q":"What is the primary functional consequence of paralysis of the wrist extensor muscles?","options":["Inability to perform ulnar deviation","Loss of sensation in the median nerve distribution","Inability to make a firm grip","Excessive swelling of the carpal tunnel"],"answer":2},{"q":"How many bones are involved in the kinesiology of the wrist?","options":["8","12","15","10"],"answer":3},{"q":"Which bony landmark borders the distal forearm on the lateral side?","options":["Ulnar styloid process","Lister’s tubercle","Radial styloid process","Pisiform"],"answer":2},{"q":"What is the clinical significance of Lister’s tubercle?","options":["It is the primary site of force distribution","It helps guide the direction of wrist and thumb extensor tendons","It serves as the attachment point for the flexor carpi ulnaris","It forms the floor of the carpal tunnel"],"answer":1},{"q":"Which bones comprise the proximal row of carpal bones, moving from a radial to ulnar direction?","options":["Scaphoid, lunate, triquetrum, and pisiform","Trapezium, trapezoid, capitate, and hamate","Scaphoid, trapezium, capitate, and lunate","Lunate, triquetrum, hamate, and pisiform"],"answer":0},{"q":"How do the ligamentous connections differ between the proximal and distal rows of carpal bones?","options":["The proximal row is tightly bound, while the distal row is loosely joined","Both rows are equally loose to allow for maximum flexibility","The proximal row is loosely joined, while the distal row is tightly bound","The distal row contains no ligaments"],"answer":2},{"q":"Why is the scaphoid the most frequently fractured carpal bone?","options":["It has no ligamentous attachments","It is located in the direct pathway of forces crossing the wrist","It is the smallest bone in the wrist","It is a sesamoid bone"],"answer":1},{"q":"Which carpal bone is the most frequently dislocated?","options":["Scaphoid","Capitate","Triquetrum","Lunate"],"answer":3},{"q":"Why is the lunate bone particularly susceptible to dislocation?","options":["It is the largest carpal bone","It lacks muscle attachments and has few ligamentous attachments","It is situated in the ulnocarpal space","It develops within the tendon of the flexor carpi ulnaris"],"answer":1},{"q":"Avascular necrosis is a severe condition associated with trauma to which carpal bone?","options":["Hamate","Lunate","Trapezoid","Pisiform"],"answer":1},{"q":"Why is the pisiform not considered a \"true\" carpal bone in a developmental sense?","options":["It is part of the distal row","It is a sesamoid bone that develops within a tendon","It does not articulate with any other bone","It is made of fibrocartilage"],"answer":1},{"q":"Which carpal bone features a saddle-shaped surface to allow wide motion of the thumb?","options":["Trapezium","Trapezoid","Scaphoid","Capitate"],"answer":0},{"q":"Which carpal bone serves as the axis of rotation for all wrist motion?","options":["Lunate","Scaphoid","Capitate","Hamate"],"answer":2},{"q":"What structure forms the bridge over the palmar side of the carpal bones to create the carpal tunnel?","options":["Dorsal radiocarpal ligament","Transverse carpal ligament","Palmar radiocarpal ligament","Radial collateral ligament"],"answer":1},{"q":"Which of the following travels through the carpal tunnel?","options":["Radial nerve","Ulnar artery","Median nerve","Extensor pollicis longus tendon"],"answer":2},{"q":"What is the underlying cause of the symptoms in Carpal Tunnel Syndrome?","options":["Fracture of the radial styloid","Increased pressure on the median nerve due to synovial swelling","Paralysis of the wrist extensors","Dislocation of the triquetrum"],"answer":1},{"q":"During weight-bearing, what percentage of force is typically accepted by the distal radius?","options":["20%","50%","80%","100%"],"answer":2},{"q":"Why are the distal ulna and ulnar carpal bones less likely to fracture during a fall?","options":["They are stronger than the radius","They are not in the direct path of weight-bearing","They are protected by the transverse carpal ligament","They are tightly bound by the midcarpal joint"],"answer":1},{"q":"What is the name of the space that buffers forces on the ulnar side of the wrist?","options":["Carpal tunnel","Ulnocarpal space","Lister's space","Radiocarpal disc"],"answer":1},{"q":"The midcarpal joint primarily separates which two structures?","options":["The radius and the ulna","The proximal and distal rows of carpal bones","The carpal bones and the metacarpals","The scaphoid and the lunate"],"answer":1},{"q":"Which ligament is responsible for resisting extremes of wrist flexion?","options":["Palmar radiocarpal ligament","Radial collateral ligament","Dorsal radiocarpal ligament","Ulnar collateral ligament"],"answer":2},{"q":"Which ligament is considered the thickest and resists extremes of wrist extension?","options":["Dorsal radiocarpal ligament","Palmar radiocarpal ligament","Ulnar collateral ligament"],"answer":1},{"q":"The radial collateral ligament is strengthened by which muscles?","options":["Flexor carpi ulnaris","Abductor pollicis longus and extensor pollicis brevis","Palmaris longus","Flexor digitorum superficialis"],"answer":1},{"q":"Which movement is specifically resisted by the ulnar collateral ligament?","options":["Flexion","Extension","Radial deviation","Ulnar deviation"],"answer":2},{"q":"The \"socket\" of the midcarpal joint is formed by the distal surfaces of which bones?","options":["Radius and Ulna","Scaphoid and Lunate","Trapezium and Trapezoid","Triquetrum and Pisiform"],"answer":1},{"q":"Which bone is described as having a \"triangular appearance\"?","options":["Trapezoid","Triquetrum","Hamate","Lunate"],"answer":1},{"q":"Why is healing often hindered in a scaphoid fracture?","options":["Because it is a sesamoid bone","Because the blood supply to the fractured component is often poor","Because the bone is too small to cast","Because it is not involved in weight-bearing"],"answer":1},{"q":"What anatomical arrangement is established by the fact that the wrist technically has seven true carpal bones?","options":["It mirrors the arrangement of the cervical vertebrae","It matches the seven tarsal bones of the ankle","It allows for three degrees of freedom","It creates the ulnocarpal space"],"answer":1},{"q":"Side-to-side motion of the wrist is medically referred to as:","options":["Flexion and Extension","Supination and Pronation","Radial and Ulnar deviation","Internal and External rotation"],"answer":2}];
+        const timeLimit = 600;
+        let timerInt;
+        let timeRemaining = timeLimit;
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+        const STORAGE_KEY = `lsf_mcq_${simpleHash(JSON.stringify(quizData))}`;
+
+        function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function loadState() {
+            try { const str = localStorage.getItem(STORAGE_KEY); return str ? JSON.parse(str) : null; } catch(e) { return null; }
+        }
+        function restartQuiz() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'in-progress', studentName: nameInput, userAnswers: new Array(quizData.length).fill(-1), timeRemaining: timeLimit });
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            renderQuestions();
+            timerInt = setInterval(() => {
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60);
+                const s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                const cur = loadState();
+                if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('q-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="box" id="qbox-${i}"><p><strong>Q${i+1}:</strong> ${q.q}</p>`;
+                q.options.forEach((opt, optIdx) => {
+                    html += `<label class="option" onclick="updateProgress()"><input type="radio" name="q${i}" value="${optIdx}"> ${opt}</label>`;
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgress() {
+            let answered = 0;
+            quizData.forEach((_, i) => { if (document.querySelector(`input[name="q${i}"]:checked`)) answered++; });
+            document.getElementById('progress').innerText = `${answered} / ${quizData.length} Answered`;
+            const saved = loadState();
+            if (saved && saved.status === 'in-progress') {
+                const userAnswers = new Array(quizData.length).fill(-1);
+                quizData.forEach((_, i) => {
+                    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                    if (sel) userAnswers[i] = parseInt(sel.value);
+                });
+                saved.userAnswers = userAnswers;
+                saveState(saved);
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInt);
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            let score = 0;
+            let reviewHtml = '';
+            const userAnswers = new Array(quizData.length).fill(-1);
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                const userAnsIdx = selected ? parseInt(selected.value) : -1;
+                userAnswers[i] = userAnsIdx;
+                const isCorrect = userAnsIdx === q.answer;
+                if (isCorrect) score++;
+                reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                    <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                    ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                </div>`;
+            });
+            const percent = Math.round((score / quizData.length) * 100);
+            const sName = document.getElementById('student-name').value || 'Student';
+            saveState({ status: 'completed', studentName: sName, userAnswers: userAnswers });
+            document.getElementById('result-title').innerText = `Quiz Complete!`;
+            document.getElementById('result-name').innerText = `Great effort, ${sName}`;
+            document.getElementById('trophy-score').innerText = `${percent}%`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+        }
+
+        function initializeQuiz() {
+            const saved = loadState();
+            if (!saved) return;
+            document.getElementById('student-name').value = saved.studentName || '';
+            if (saved.status === 'completed') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'block';
+                let score = 0;
+                let reviewHtml = '';
+                quizData.forEach((q, i) => {
+                    const userAnsIdx = saved.userAnswers[i];
+                    const isCorrect = userAnsIdx === q.answer;
+                    if (isCorrect) score++;
+                    reviewHtml += `<div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <p><strong>Q${i+1}:</strong> ${q.q}</p>
+                        <p>Your Answer: <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">${userAnsIdx !== -1 ? q.options[userAnsIdx] : 'Skipped'}</span></p>
+                        ${!isCorrect ? `<p>Correct Answer: <span style="color: var(--success)">${q.options[q.answer]}</span></p>` : ''}
+                    </div>`;
+                });
+                const percent = Math.round((score / quizData.length) * 100);
+                document.getElementById('result-title').innerText = `Quiz Complete!`;
+                document.getElementById('result-name').innerText = `Great effort, ${saved.studentName}`;
+                document.getElementById('trophy-score').innerText = `${percent}%`;
+                document.getElementById('review-container').innerHTML = reviewHtml;
+            } else if (saved.status === 'in-progress') {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                timeRemaining = saved.timeRemaining || timeLimit;
+                renderQuestions();
+                saved.userAnswers.forEach((ansIdx, i) => {
+                    if (ansIdx !== -1) {
+                        const radio = document.querySelector(`input[name="q${i}"][value="${ansIdx}"]`);
+                        if (radio) radio.checked = true;
+                    }
+                });
+                updateProgress();
+                timerInt = setInterval(() => {
+                    timeRemaining--;
+                    const m = Math.floor(timeRemaining / 60);
+                    const s = timeRemaining % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeRemaining <= 0) { clearInterval(timerInt); alert("Time's Up!"); submitQuiz(); }
+                    const cur = loadState();
+                    if (cur && cur.status === 'in-progress') { cur.timeRemaining = timeRemaining; saveState(cur); }
+                }, 1000);
+            }
+        }
+        initializeQuiz();
+    </script>
+</body>
+</html>
